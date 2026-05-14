@@ -1,36 +1,96 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# AgentPayOps
 
-## Getting Started
+Finance controls for autonomous AI agents that can review invoices, evaluate spend policies, respond to X402-style payment challenges, and produce audit-ready decision logs.
 
-First, run the development server:
+## Demo Thesis
+
+Autonomous agents will buy data, tools, compute, and services. Companies need a control plane that decides when those agents are allowed to spend money, blocks risky or duplicate purchases, escalates high-value actions, and records every decision for finance teams.
+
+AgentPayOps demonstrates that control layer through one vertical workflow:
+
+1. An invoice agent reviews a vendor invoice.
+2. The agent needs a paid vendor-risk report.
+3. The report endpoint returns `402 Payment Required`.
+4. AgentPayOps evaluates vendor, category, amount, approval threshold, and duplicate-purchase rules.
+5. The system approves, blocks, or escalates the payment.
+6. Transactions and reasoning are shown in an audit dashboard.
+
+## Current Build
+
+- Next.js 16 App Router
+- TypeScript
+- Tailwind CSS 4
+- Lucide icons
+- Deterministic sample data
+- Policy evaluation engine
+- Mock X402-style protected endpoint
+- API routes for invoice analysis, policy evaluation, payment attempt, vendor-risk report, and audit data
+- Invoice intake UI with sample invoices, extracted fields, risk findings, and required paid-data callouts
+- Interactive scenario runner for approved, escalated, and blocked agent payments
+- Live transaction and audit log updates when an agent scenario completes
+- AI finance memo route with Gemini support and deterministic fallback
+
+## Environment
+
+Copy `.env.example` to `.env.local` when you want live AI reasoning.
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+GEMINI_API_KEY=your_key_here
+GEMINI_MODEL=gemini-1.5-flash
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+If no Gemini key is present, the app still works and returns deterministic finance memos from the policy decision.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Run Locally
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+```bash
+npm install
+npm run dev
+```
 
-## Learn More
+Open `http://localhost:3000`.
 
-To learn more about Next.js, take a look at the following resources:
+## Verify
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+```bash
+npm run lint
+npm run build
+```
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+## API Smoke Tests
 
-## Deploy on Vercel
+Protected vendor-risk endpoint returns a payment challenge:
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+```bash
+curl -i http://localhost:3000/api/vendor-risk/report
+```
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+Paid report succeeds with a mock payment proof:
+
+```bash
+curl http://localhost:3000/api/vendor-risk/report \
+  -H 'x-payment-proof: x402-demo-check'
+```
+
+Clean payment attempt:
+
+```bash
+curl -X POST http://localhost:3000/api/payments/attempt \
+  -H 'content-type: application/json' \
+  -d '{"vendorName":"Veritas Risk Graph","category":"vendor-risk-data","amount":0.42,"invoiceId":"INV-2412"}'
+```
+
+Invoice analysis:
+
+```bash
+curl -X POST http://localhost:3000/api/invoices/analyze \
+  -H 'content-type: application/json' \
+  -d '{"sampleId":"sample-cloud-escalation"}'
+```
+
+## Next Implementation Steps
+
+1. Persist invoices, transactions, policies, and audit events with Supabase or a Vultr-hosted Postgres database.
+2. Replace the mock payment proof with the real X402 integration.
+3. Add document upload support for PDF/image invoices.
+4. Package for Vultr deployment.
