@@ -23,7 +23,7 @@ AgentPayOps demonstrates that control layer through one vertical workflow:
 - Lucide icons
 - Deterministic sample data
 - Policy evaluation engine
-- Mock X402-style protected endpoint
+- X402-style protected endpoint with default demo mode and optional real `@x402/next` settlement
 - API routes for invoice analysis, policy evaluation, payment attempt, vendor-risk report, and audit data
 - Invoice intake UI with sample invoices, extracted fields, risk findings, and required paid-data callouts
 - Interactive scenario runner for approved, escalated, and blocked agent payments
@@ -50,6 +50,16 @@ For persistent transactions and audit logs, run `supabase/schema.sql` in Supabas
 NEXT_PUBLIC_SUPABASE_URL=your_project_url
 NEXT_PUBLIC_SUPABASE_ANON_KEY=your_anon_key
 SUPABASE_SERVICE_ROLE_KEY=your_service_role_key
+```
+
+The vendor-risk report runs in demo payment mode by default so the browser demo works without a wallet. To enable the official X402 route wrapper for real payment clients, set:
+
+```bash
+X402_MODE=real
+X402_RECEIVING_ADDRESS=0xYourReceivingAddress
+X402_NETWORK=eip155:84532
+X402_VENDOR_REPORT_PRICE=0.42
+X402_FACILITATOR_URL=https://facilitator.x402.org
 ```
 
 ## Run Locally
@@ -103,6 +113,12 @@ Protected vendor-risk endpoint returns a payment challenge:
 curl -i http://localhost:3000/api/vendor-risk/report
 ```
 
+X402 mode/status:
+
+```bash
+curl http://localhost:3000/api/x402/status
+```
+
 Paid report succeeds with a mock payment proof:
 
 ```bash
@@ -128,7 +144,6 @@ curl -X POST http://localhost:3000/api/invoices/analyze \
 
 ## Next Implementation Steps
 
-1. Configure Supabase env vars in Vercel/Vultr and verify run history survives refresh.
-2. Replace the mock payment proof with the real X402 integration.
-3. Add document upload support for PDF/image invoices.
-4. Deploy the production container on Vultr and record the demo video.
+1. Deploy the production container on Vultr and verify `/api/health`, `/api/audit`, and `/api/x402/status`.
+2. Add document upload support for PDF/image invoices.
+3. Record the demo video with the Vultr URL as the primary deployment.

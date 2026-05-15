@@ -1,3 +1,13 @@
+import { withX402 } from "@x402/next";
+import { NextRequest, NextResponse } from "next/server";
+
+import {
+  buildPaymentRequiredBody,
+  createVendorRiskRouteConfig,
+  createX402ResourceServer,
+  getX402RuntimeConfig,
+} from "@/lib/x402-server";
+
 function buildReport(vendorName: string) {
   return {
     vendorName,
@@ -20,34 +30,53 @@ const defaultReport = {
     "Northstar Data Labs has a verified operating history, no sanctions matches, and low payment risk for the requested invoice.",
 };
 
-export async function GET(request: Request) {
+async function handler(request: NextRequest): Promise<NextResponse<unknown>> {
   const url = new URL(request.url);
   const vendorName = url.searchParams.get("vendorName") || defaultReport.vendorName;
+  const runtimeConfig = getX402RuntimeConfig();
+
+  if (runtimeConfig.enabled) {
+    return NextResponse.json({
+      report: buildReport(vendorName),
+      paymentReference: request.headers.get("x-payment") ?? "x402-settled",
+      paymentMode: "x402",
+    });
+  }
+
   const paymentProof = request.headers.get("x-payment-proof");
 
   if (!paymentProof) {
-    return Response.json(
-      {
-        error: "payment_required",
-        message: "Vendor-risk report requires a programmable payment.",
-        amount: "0.42",
-        currency: "EUR",
-        accepts: "x402-demo",
-        paymentHeader: "x-payment-proof",
+    return NextResponse.json(buildPaymentRequiredBody("demo"), {
+      status: 402,
+      headers: {
+        "x-accepts-payment": "x402-demo",
+        "x-payment-amount": "0.42",
+        "x-payment-currency": "USDC",
       },
-      {
-        status: 402,
-        headers: {
-          "x-accepts-payment": "x402-demo",
-          "x-payment-amount": "0.42",
-          "x-payment-currency": "EUR",
-        },
-      },
-    );
+    });
   }
 
-  return Response.json({
+  return NextResponse.json({
     report: buildReport(vendorName),
     paymentReference: paymentProof,
+    paymentMode: "demo",
   });
+}
+
+let x402Handler: typeof handler | null = null;
+
+export async function GET(request: NextRequest) {
+  const runtimeConfig = getX402RuntimeConfig();
+
+  if (!runtimeConfig.enabled) {
+    return handler(request);
+  }
+
+  x402Handler ??= withX402(
+    handler,
+    createVendorRiskRouteConfig(runtimeConfig),
+    createX402ResourceServer(runtimeConfig),
+  );
+
+  return x402Handler(request);
 }

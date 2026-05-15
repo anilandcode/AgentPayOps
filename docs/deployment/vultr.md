@@ -11,7 +11,7 @@ GitHub
         -> AgentPayOps Next.js container
         -> Postgres or managed database later
         -> Gemini API for finance reasoning
-        -> X402 payment endpoint integration later
+        -> Optional real X402 payment settlement for vendor-risk data
 ```
 
 ## Prerequisites
@@ -38,16 +38,26 @@ Optional for live Gemini reasoning:
 GEMINI_API_KEY=your_key_here
 ```
 
-Reserved for the next build steps:
+Required for Supabase persistence:
 
 ```bash
-DATABASE_URL=
 NEXT_PUBLIC_SUPABASE_URL=
 NEXT_PUBLIC_SUPABASE_ANON_KEY=
 SUPABASE_SERVICE_ROLE_KEY=
-X402_RECEIVING_ADDRESS=
-X402_NETWORK=
 ```
+
+Optional for real X402 settlement:
+
+```bash
+X402_MODE=real
+X402_RECEIVING_ADDRESS=
+EVM_ADDRESS=
+X402_NETWORK=eip155:84532
+X402_VENDOR_REPORT_PRICE=0.42
+X402_FACILITATOR_URL=https://facilitator.x402.org
+```
+
+Keep `X402_MODE=demo` for the browser-based hackathon walkthrough unless you have an X402-capable client ready to pay the protected endpoint.
 
 ## Deploy With Coolify
 
@@ -62,6 +72,12 @@ X402_NETWORK=
 
 ```bash
 curl https://your-vultr-domain.example/api/health
+```
+
+Confirm the payment mode:
+
+```bash
+curl https://your-vultr-domain.example/api/x402/status
 ```
 
 ## Deploy With Docker Compose
@@ -87,6 +103,6 @@ For the Vultr challenge, the submission should explicitly mention:
 
 - The app is a web-based enterprise agent for finance operations.
 - The Vultr VM hosts the production web app and API routes.
-- The app demonstrates invoice intake, agentic payment decisions, policy enforcement, X402-style payment handling, Gemini finance reasoning, and audit logs.
+- The app demonstrates invoice intake, agentic payment decisions, policy enforcement, X402-style or real X402 payment handling, Gemini finance reasoning, and audit logs.
 - The health route is `/api/health`.
 - The GitHub repository includes setup and deployment documentation.
