@@ -29,6 +29,8 @@ AgentPayOps demonstrates that control layer through one vertical workflow:
 - Interactive scenario runner for approved, escalated, and blocked agent payments
 - Live transaction and audit log updates when an agent scenario completes
 - AI finance memo route with Gemini support and deterministic fallback
+- Dockerfile and Docker Compose configuration for Vultr/Coolify deployment
+- Health endpoint at `/api/health`
 
 ## Environment
 
@@ -56,6 +58,32 @@ Open `http://localhost:3000`.
 npm run lint
 npm run build
 ```
+
+## Deploy
+
+Vercel is useful for quick previews, but the final Vultr award submission should run on a Vultr VM.
+
+Docker build:
+
+```bash
+docker build -t agentpayops .
+docker run --env-file .env -p 3000:3000 agentpayops
+```
+
+Docker Compose:
+
+```bash
+cp .env.example .env
+docker compose up -d --build
+```
+
+Health check:
+
+```bash
+curl http://localhost:3000/api/health
+```
+
+Vultr/Coolify deployment notes are in `docs/deployment/vultr.md`.
 
 ## API Smoke Tests
 
@@ -93,4 +121,4 @@ curl -X POST http://localhost:3000/api/invoices/analyze \
 1. Persist invoices, transactions, policies, and audit events with Supabase or a Vultr-hosted Postgres database.
 2. Replace the mock payment proof with the real X402 integration.
 3. Add document upload support for PDF/image invoices.
-4. Package for Vultr deployment.
+4. Deploy the production container on Vultr and record the demo video.
