@@ -28,7 +28,7 @@ Use `.env.example` as the source of truth.
 Required for the current demo:
 
 ```bash
-GEMINI_MODEL=gemini-1.5-flash
+GEMINI_MODEL=gemini-2.5-flash
 NEXT_PUBLIC_APP_URL=https://your-vultr-domain.example
 ```
 
