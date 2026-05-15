@@ -1,4 +1,5 @@
 import { evaluatePayment } from "@/lib/policy-engine";
+import { getTransactionsForPolicyEvaluation } from "@/lib/persistence";
 
 export async function POST(request: Request) {
   const payload = (await request.json()) as {
@@ -18,11 +19,13 @@ export async function POST(request: Request) {
     );
   }
 
+  const existingTransactions = await getTransactionsForPolicyEvaluation();
   const evaluation = evaluatePayment({
     vendorName: payload.vendorName,
     category: payload.category,
     amount: payload.amount,
     invoiceId: payload.invoiceId,
+    existingTransactions,
   });
 
   if (evaluation.decision !== "approved") {

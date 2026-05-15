@@ -31,6 +31,7 @@ AgentPayOps demonstrates that control layer through one vertical workflow:
 - AI finance memo route with Gemini support and deterministic fallback
 - Dockerfile and Docker Compose configuration for Vultr/Coolify deployment
 - Health endpoint at `/api/health`
+- Supabase/Postgres schema and optional persistence for agent runs, transactions, and audit events
 
 ## Environment
 
@@ -42,6 +43,14 @@ GEMINI_MODEL=gemini-2.5-flash
 ```
 
 If no Gemini key is present, the app still works and returns deterministic finance memos from the policy decision.
+
+For persistent transactions and audit logs, run `supabase/schema.sql` in Supabase and set:
+
+```bash
+NEXT_PUBLIC_SUPABASE_URL=your_project_url
+NEXT_PUBLIC_SUPABASE_ANON_KEY=your_anon_key
+SUPABASE_SERVICE_ROLE_KEY=your_service_role_key
+```
 
 ## Run Locally
 
@@ -84,6 +93,7 @@ curl http://localhost:3000/api/health
 ```
 
 Vultr/Coolify deployment notes are in `docs/deployment/vultr.md`.
+Supabase persistence notes are in `docs/deployment/supabase.md`.
 
 ## API Smoke Tests
 
@@ -118,7 +128,7 @@ curl -X POST http://localhost:3000/api/invoices/analyze \
 
 ## Next Implementation Steps
 
-1. Persist invoices, transactions, policies, and audit events with Supabase or a Vultr-hosted Postgres database.
+1. Configure Supabase env vars in Vercel/Vultr and verify run history survives refresh.
 2. Replace the mock payment proof with the real X402 integration.
 3. Add document upload support for PDF/image invoices.
 4. Deploy the production container on Vultr and record the demo video.

@@ -1,7 +1,7 @@
 "use client";
 
 import { FileSearch, PlusCircle } from "lucide-react";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   AgentWorkflow,
   type WorkflowRunResult,
@@ -87,8 +87,10 @@ function buildAuditEvent(result: WorkflowRunResult, runNumber: number): AuditEve
 
 function LiveTransactionTable({
   rows,
+  source,
 }: {
   rows: Transaction[];
+  source: "sample" | "supabase";
 }) {
   return (
     <section className="rounded-lg border border-slate-200 bg-white shadow-sm">
@@ -103,7 +105,7 @@ function LiveTransactionTable({
         </div>
         <span className="inline-flex items-center gap-2 rounded-lg border border-cyan-200 bg-cyan-50 px-3 py-2 text-sm font-semibold text-cyan-800">
           <PlusCircle className="size-4" />
-          Live updates enabled
+          {source === "supabase" ? "Database backed" : "Demo data active"}
         </span>
       </div>
       <div className="overflow-x-auto">
@@ -204,19 +206,77 @@ function LiveAuditTimeline({ events }: { events: AuditEvent[] }) {
 }
 
 export function LiveOperationsCenter() {
+  const [baseTransactions, setBaseTransactions] =
+    useState<Transaction[]>(transactions);
+  const [baseAuditEvents, setBaseAuditEvents] =
+    useState<AuditEvent[]>(auditEvents);
   const [liveTransactions, setLiveTransactions] = useState<Transaction[]>([]);
   const [liveAuditEvents, setLiveAuditEvents] = useState<AuditEvent[]>([]);
+  const [source, setSource] = useState<"sample" | "supabase">("sample");
 
   const allTransactions = useMemo(
-    () => [...liveTransactions, ...transactions],
-    [liveTransactions],
+    () => [...liveTransactions, ...baseTransactions],
+    [baseTransactions, liveTransactions],
   );
   const allAuditEvents = useMemo(
-    () => [...liveAuditEvents, ...auditEvents],
-    [liveAuditEvents],
+    () => [...liveAuditEvents, ...baseAuditEvents],
+    [baseAuditEvents, liveAuditEvents],
   );
 
-  function handleRunComplete(result: WorkflowRunResult) {
+  useEffect(() => {
+    let isActive = true;
+
+    async function loadOperations() {
+      const response = await fetch("/api/audit");
+      const body = (await response.json()) as {
+        source?: "sample" | "supabase";
+        transactions: Transaction[];
+        auditEvents: AuditEvent[];
+      };
+
+      if (!isActive) {
+        return;
+      }
+
+      setBaseTransactions(body.transactions);
+      setBaseAuditEvents(body.auditEvents);
+      setSource(body.source ?? "sample");
+    }
+
+    loadOperations().catch(() => {
+      setSource("sample");
+    });
+
+    return () => {
+      isActive = false;
+    };
+  }, []);
+
+  async function handleRunComplete(result: WorkflowRunResult) {
+    try {
+      const response = await fetch("/api/agent-runs", {
+        method: "POST",
+        headers: {
+          "content-type": "application/json",
+        },
+        body: JSON.stringify(result),
+      });
+      const body = (await response.json()) as {
+        source?: "memory" | "supabase";
+        transaction?: Transaction;
+        auditEvent?: AuditEvent;
+      };
+
+      if (body.transaction && body.auditEvent) {
+        setLiveTransactions((current) => [body.transaction as Transaction, ...current]);
+        setLiveAuditEvents((current) => [body.auditEvent as AuditEvent, ...current]);
+        setSource(body.source === "supabase" ? "supabase" : source);
+        return;
+      }
+    } catch {
+      // Keep the demo responsive if persistence is unavailable.
+    }
+
     setLiveTransactions((current) => [
       buildTransaction(result, current.length + 1),
       ...current,
@@ -230,7 +290,7 @@ export function LiveOperationsCenter() {
   return (
     <>
       <AgentWorkflow onRunComplete={handleRunComplete} />
-      <LiveTransactionTable rows={allTransactions} />
+      <LiveTransactionTable rows={allTransactions} source={source} />
       <LiveAuditTimeline events={allAuditEvents} />
     </>
   );

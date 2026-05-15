@@ -1,10 +1,11 @@
-import { policies, transactions, type Decision } from "./sample-data";
+import { policies, transactions, type Decision, type Transaction } from "./sample-data";
 
 export type PaymentRequest = {
   vendorName: string;
   amount: number;
   category: string;
   invoiceId?: string;
+  existingTransactions?: Transaction[];
 };
 
 export type PolicyEvaluation = {
@@ -42,7 +43,8 @@ export function evaluatePayment(request: PaymentRequest): PolicyEvaluation {
   const vendorBlocked = policy.blockedVendors.includes(request.vendorName);
   const belowMaxAmount = request.amount <= policy.maxAmount;
   const needsApproval = request.amount > policy.approvalRequiredAbove;
-  const duplicatePurchase = transactions.some(
+  const existingTransactions = request.existingTransactions ?? transactions;
+  const duplicatePurchase = existingTransactions.some(
     (transaction) =>
       transaction.vendorName === request.vendorName &&
       transaction.category === request.category &&

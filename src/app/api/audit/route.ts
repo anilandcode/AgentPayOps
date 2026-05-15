@@ -1,8 +1,5 @@
-import { auditEvents, transactions } from "@/lib/sample-data";
+import { getOperationsSnapshot } from "@/lib/persistence";
 
 export async function GET() {
-  return Response.json({
-    auditEvents,
-    transactions,
-  });
+  return Response.json(await getOperationsSnapshot());
 }
