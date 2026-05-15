@@ -9,7 +9,7 @@ GitHub
   -> Vultr VM
      -> Coolify or Docker Compose
         -> AgentPayOps Next.js container
-        -> Postgres or managed database later
+        -> Supabase/Postgres persistence
         -> Gemini API for finance reasoning
         -> Optional real X402 payment settlement for vendor-risk data
 ```
@@ -80,6 +80,12 @@ Confirm the payment mode:
 curl https://your-vultr-domain.example/api/x402/status
 ```
 
+Confirm Supabase-backed audit data:
+
+```bash
+curl https://your-vultr-domain.example/api/audit
+```
+
 ## Deploy With Docker Compose
 
 On the Vultr VM:
@@ -103,6 +109,6 @@ For the Vultr challenge, the submission should explicitly mention:
 
 - The app is a web-based enterprise agent for finance operations.
 - The Vultr VM hosts the production web app and API routes.
-- The app demonstrates invoice intake, agentic payment decisions, policy enforcement, X402-style or real X402 payment handling, Gemini finance reasoning, and audit logs.
+- The app demonstrates invoice upload/intake, agentic payment decisions, policy enforcement, X402-style or real X402 payment handling, Gemini finance reasoning, and audit logs.
 - The health route is `/api/health`.
 - The GitHub repository includes setup and deployment documentation.

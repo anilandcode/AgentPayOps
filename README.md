@@ -24,14 +24,29 @@ AgentPayOps demonstrates that control layer through one vertical workflow:
 - Deterministic sample data
 - Policy evaluation engine
 - X402-style protected endpoint with default demo mode and optional real `@x402/next` settlement
-- API routes for invoice analysis, policy evaluation, payment attempt, vendor-risk report, and audit data
-- Invoice intake UI with sample invoices, extracted fields, risk findings, and required paid-data callouts
+- API routes for invoice analysis, file upload extraction, policy evaluation, payment attempt, vendor-risk report, and audit data
+- Invoice intake UI with sample invoices, uploaded invoice documents, extracted fields, risk findings, and required paid-data callouts
 - Interactive scenario runner for approved, escalated, and blocked agent payments
 - Live transaction and audit log updates when an agent scenario completes
 - AI finance memo route with Gemini support and deterministic fallback
 - Dockerfile and Docker Compose configuration for Vultr/Coolify deployment
 - Health endpoint at `/api/health`
 - Supabase/Postgres schema and optional persistence for agent runs, transactions, and audit events
+
+## Architecture
+
+```text
+Browser
+  -> Next.js UI on Vultr/Coolify
+     -> /api/invoices/analyze for sample or pasted invoice text
+     -> /api/invoices/upload for TXT/CSV/JSON/XML plus Gemini-assisted PDF/image extraction
+     -> /api/payments/attempt for policy evaluation and payment decision
+     -> /api/vendor-risk/report for X402-style 402 challenge and paid retry
+     -> /api/agent/reasoning for Gemini finance memo generation
+     -> Supabase for transactions, audit events, and completed agent runs
+```
+
+The app keeps `X402_MODE=demo` for browser-based judging, while the same vendor-risk route can be switched to official `@x402/next` settlement with `X402_MODE=real` and a receiving address.
 
 ## Environment
 
@@ -142,8 +157,15 @@ curl -X POST http://localhost:3000/api/invoices/analyze \
   -d '{"sampleId":"sample-cloud-escalation"}'
 ```
 
+Invoice upload:
+
+```bash
+curl -X POST http://localhost:3000/api/invoices/upload \
+  -F 'invoice=@./sample-invoice.txt'
+```
+
 ## Next Implementation Steps
 
-1. Deploy the production container on Vultr and verify `/api/health`, `/api/audit`, and `/api/x402/status`.
-2. Add document upload support for PDF/image invoices.
-3. Record the demo video with the Vultr URL as the primary deployment.
+1. Record the demo video with the Vultr URL as the primary deployment.
+2. Add team-specific policy editing if time allows.
+3. Replace demo X402 mode with real settlement once an X402-capable client is available.

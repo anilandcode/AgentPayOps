@@ -1,18 +1,5 @@
-import { invoiceAnalyses, invoiceSamples } from "@/lib/sample-data";
-
-function inferSampleId(invoiceText: string) {
-  const normalized = invoiceText.toLowerCase();
-
-  if (normalized.includes("apex enrichment")) {
-    return "sample-duplicate-enrichment";
-  }
-
-  if (normalized.includes("metro cloud")) {
-    return "sample-cloud-escalation";
-  }
-
-  return "sample-vendor-risk";
-}
+import { analyzeInvoiceText, inferSampleId } from "@/lib/invoice-analysis";
+import { invoiceSamples } from "@/lib/sample-data";
 
 export async function POST(request: Request) {
   const payload = (await request.json()) as {
@@ -23,7 +10,11 @@ export async function POST(request: Request) {
   const sampleId =
     payload.sampleId ||
     inferSampleId(payload.invoiceText || invoiceSamples[0].invoiceText);
-  const analysis = invoiceAnalyses[sampleId];
+  const invoiceText =
+    payload.invoiceText ||
+    invoiceSamples.find((sample) => sample.id === sampleId)?.invoiceText ||
+    invoiceSamples[0].invoiceText;
+  const analysis = analyzeInvoiceText(invoiceText, payload.sampleId);
 
   if (!analysis) {
     return Response.json(
@@ -36,8 +27,7 @@ export async function POST(request: Request) {
 
   return Response.json({
     analysis,
-    extractedFrom:
-      payload.invoiceText ||
-      invoiceSamples.find((sample) => sample.id === sampleId)?.invoiceText,
+    extractedFrom: invoiceText,
+    extractionSource: "text",
   });
 }

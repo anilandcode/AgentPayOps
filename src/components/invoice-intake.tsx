@@ -6,6 +6,7 @@ import {
   CheckCircle2,
   ClipboardList,
   FileText,
+  FileUp,
   Loader2,
   SearchCheck,
 } from "lucide-react";
@@ -19,6 +20,8 @@ import {
 type InvoiceAnalyzeResponse = {
   analysis: InvoiceAnalysis;
   extractedFrom: string;
+  extractionSource?: "text" | "gemini" | "metadata-fallback";
+  fileName?: string;
 };
 
 const decisionStyles: Record<Decision, string> = {
@@ -38,6 +41,9 @@ export function InvoiceIntake() {
   const [invoiceText, setInvoiceText] = useState(invoiceSamples[0].invoiceText);
   const [analysis, setAnalysis] = useState<InvoiceAnalysis | null>(null);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
+  const [uploadedFileName, setUploadedFileName] = useState<string | null>(null);
+  const [extractionSource, setExtractionSource] = useState<string | null>(null);
+  const [uploadError, setUploadError] = useState<string | null>(null);
 
   function selectSample(sampleId: string) {
     const sample = invoiceSamples.find((candidate) => candidate.id === sampleId);
@@ -49,6 +55,9 @@ export function InvoiceIntake() {
     setSelectedSampleId(sample.id);
     setInvoiceText(sample.invoiceText);
     setAnalysis(null);
+    setUploadedFileName(null);
+    setExtractionSource(null);
+    setUploadError(null);
   }
 
   async function analyzeInvoice() {
@@ -67,6 +76,44 @@ export function InvoiceIntake() {
       });
       const body = (await response.json()) as InvoiceAnalyzeResponse;
       setAnalysis(body.analysis);
+      setExtractionSource(body.extractionSource ?? "text");
+      setUploadError(null);
+    } finally {
+      setIsAnalyzing(false);
+    }
+  }
+
+  async function uploadInvoice(file: File | undefined) {
+    if (!file) {
+      return;
+    }
+
+    setIsAnalyzing(true);
+    setUploadError(null);
+
+    try {
+      const formData = new FormData();
+      formData.append("invoice", file);
+
+      const response = await fetch("/api/invoices/upload", {
+        method: "POST",
+        body: formData,
+      });
+      const body = (await response.json()) as InvoiceAnalyzeResponse & {
+        error?: string;
+      };
+
+      if (!response.ok) {
+        throw new Error(body.error || "Invoice upload failed.");
+      }
+
+      setSelectedSampleId("uploaded");
+      setInvoiceText(body.extractedFrom);
+      setAnalysis(body.analysis);
+      setUploadedFileName(body.fileName ?? file.name);
+      setExtractionSource(body.extractionSource ?? "metadata-fallback");
+    } catch (error) {
+      setUploadError(error instanceof Error ? error.message : "Invoice upload failed.");
     } finally {
       setIsAnalyzing(false);
     }
@@ -120,6 +167,33 @@ export function InvoiceIntake() {
                 {sample.label}
               </button>
             ))}
+          </div>
+
+          <div className="rounded-lg border border-dashed border-slate-300 bg-white p-4">
+            <label className="flex cursor-pointer flex-wrap items-center justify-between gap-3">
+              <span className="inline-flex items-center gap-2 text-sm font-semibold text-slate-800">
+                <FileUp className="size-4" />
+                Upload invoice file
+              </span>
+              <span className="rounded-md bg-slate-950 px-3 py-2 text-sm font-semibold text-white">
+                Choose file
+              </span>
+              <input
+                accept=".txt,.csv,.json,.xml,.pdf,image/*"
+                className="sr-only"
+                disabled={isAnalyzing}
+                onChange={(event) => uploadInvoice(event.target.files?.[0])}
+                type="file"
+              />
+            </label>
+            {uploadedFileName ? (
+              <p className="mt-3 text-sm text-slate-600">
+                {uploadedFileName} · {extractionSource ?? "metadata-fallback"}
+              </p>
+            ) : null}
+            {uploadError ? (
+              <p className="mt-3 text-sm font-medium text-rose-700">{uploadError}</p>
+            ) : null}
           </div>
 
           <label className="block">
