@@ -9,7 +9,7 @@ http://st2bm9ob1tiu62tc8jatrwlk.149.28.34.93.sslip.io/
 ## 90-Second Walkthrough
 
 1. Open the dashboard and state the problem: autonomous agents will buy data, tools, and compute, but finance needs spend controls before agents can issue payments.
-2. In Invoice Intake, select or upload an invoice and run analysis. Point out extracted vendor, amount, category, risk score, and required paid-data purchase.
+2. In Invoice Intake, upload three files from `demo-files/`: `Invoice_Standard_Data.txt`, `Invoice_HighValue_Compute.txt`, and `Invoice_Blocked_Vendor.txt`. Point out extracted vendor, USD amount, normalized policy category, risk score, and decision.
 3. In the X402 Payment Simulation panel, explain that the vendor-risk endpoint returns `402 Payment Required` until the agent is allowed to pay.
 4. Run the approved vendor-risk scenario. Show the policy check, payment reference, vendor-risk report, Gemini memo, and new audit entry.
 5. Run the high-value cloud invoice scenario. Show that it escalates instead of paying automatically.
@@ -24,6 +24,16 @@ curl http://st2bm9ob1tiu62tc8jatrwlk.149.28.34.93.sslip.io/api/health
 curl http://st2bm9ob1tiu62tc8jatrwlk.149.28.34.93.sslip.io/api/audit
 curl http://st2bm9ob1tiu62tc8jatrwlk.149.28.34.93.sslip.io/api/x402/status
 curl -i http://st2bm9ob1tiu62tc8jatrwlk.149.28.34.93.sslip.io/api/vendor-risk/report
+```
+
+## Demo File Expectations
+
+```text
+Invoice_Standard_Data.txt            -> approved
+Invoice_HighValue_Compute.txt        -> escalated
+Invoice_High_Limit_Cloud.txt.txt     -> escalated
+Invoice_Blocked_Vendor.txt           -> blocked
+Invoice_Duplicate_Enrichment.txt     -> blocked
 ```
 
 ## Submission Points

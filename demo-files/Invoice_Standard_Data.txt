@@ -1,0 +1,16 @@
+INVOICE
+-------------------------------------------------
+Vendor: ClearData Enrichment APIs
+Vendor Address: 101 Data Drive, San Francisco, CA
+Invoice Number: INV-88392-A
+Date: May 15, 2026
+
+Billed To: AgentPayOps Internal
+-------------------------------------------------
+Item                                  Amount
+API Usage (Tier 1 - 50k calls)        $150.00
+Vendor Risk Report Surcharge          $5.00
+
+TOTAL DUE:                            $155.00
+Category: Software/API
+Risk Assessment Status: Pending

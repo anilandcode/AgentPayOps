@@ -31,10 +31,12 @@ const decisionStyles: Record<Decision, string> = {
   pending: "border-slate-200 bg-slate-50 text-slate-600",
 };
 
-const currency = new Intl.NumberFormat("en-US", {
-  style: "currency",
-  currency: "EUR",
-});
+function formatMoney(amount: number, currencyCode: InvoiceAnalysis["currency"]) {
+  return new Intl.NumberFormat("en-US", {
+    style: "currency",
+    currency: currencyCode,
+  }).format(amount);
+}
 
 export function InvoiceIntake() {
   const [selectedSampleId, setSelectedSampleId] = useState(invoiceSamples[0].id);
@@ -238,7 +240,7 @@ export function InvoiceIntake() {
                     Amount
                   </p>
                   <p className="mt-2 text-lg font-semibold text-slate-950">
-                    {currency.format(analysis.amount)}
+                    {formatMoney(analysis.amount, analysis.currency)}
                   </p>
                 </div>
                 <div className="rounded-lg border border-slate-200 bg-white p-3">
@@ -296,7 +298,11 @@ export function InvoiceIntake() {
                     Required paid data before approval
                   </div>
                   <p className="mt-2 text-sm leading-6 text-cyan-900">
-                    Buy a {currency.format(analysis.requiredDataPurchase.amount)}{" "}
+                    Buy a{" "}
+                    {formatMoney(
+                      analysis.requiredDataPurchase.amount,
+                      analysis.currency,
+                    )}{" "}
                     {analysis.requiredDataPurchase.category} report from{" "}
                     {analysis.requiredDataPurchase.vendorName}.{" "}
                     {analysis.requiredDataPurchase.reason}

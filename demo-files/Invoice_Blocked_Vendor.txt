@@ -1,0 +1,16 @@
+INVOICE
+-------------------------------------------------
+Vendor: ShadyScrape Anonymous Ltd.
+Vendor Address: P.O. Box 99, Offshore Jurisdiction
+Invoice Number: SSL-0019
+Date: May 16, 2026
+
+Billed To: AgentPayOps Internal
+-------------------------------------------------
+Item                                  Amount
+Unverified Lead List Generation       $850.00
+Bypass Proxies                        $200.00
+
+TOTAL DUE:                            $1,050.00
+Category: Uncategorized Data
+Risk Assessment Status: Pending

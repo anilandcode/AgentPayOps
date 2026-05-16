@@ -1,0 +1,16 @@
+INVOICE
+-------------------------------------------------
+Vendor: Global Cloud Infrastructure Corp.
+Vendor Address: 404 Server Lane, Ashburn, VA
+Invoice Number: GCI-2026-9941
+Date: May 16, 2026
+
+Billed To: AgentPayOps Internal
+-------------------------------------------------
+Item                                  Amount
+H100 GPU Cluster - 730 Hours          $34,500.00
+High-Throughput Storage Outgress      $8,200.00
+
+TOTAL DUE:                            $42,700.00
+Category: Cloud Compute / Hardware
+Risk Assessment Status: Pending

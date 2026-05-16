@@ -1,0 +1,16 @@
+INVOICE
+-------------------------------------------------
+Vendor: Apollo.io Data Enrichment
+Vendor Address: 535 Mission St, San Francisco, CA
+Invoice Number: APL-ENRICH-7742
+Date: May 16, 2026
+
+Billed To: AgentPayOps Internal
+-------------------------------------------------
+Item                                          Amount
+Contact Data Enrichment API - 10,000 Credits  $250.00
+
+TOTAL DUE:                                    $250.00
+Category: Data & APIs
+Risk Assessment Status: Pending
+Memo: Agent initiated data enrichment for Q2 lead generation.

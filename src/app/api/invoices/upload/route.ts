@@ -90,7 +90,7 @@ export async function POST(request: Request) {
   }
 
   const analysis = extractedText
-    ? analyzeInvoiceText(extractedText)
+    ? analyzeInvoiceText(extractedText, undefined, upload.name)
     : buildUploadedFallbackAnalysis(upload.name, upload.type);
 
   return Response.json({

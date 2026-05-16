@@ -29,13 +29,17 @@ export function inferSampleId(invoiceText: string) {
   return "sample-vendor-risk";
 }
 
-export function analyzeInvoiceText(invoiceText: string, sampleId?: string): InvoiceAnalysis {
+export function analyzeInvoiceText(
+  invoiceText: string,
+  sampleId?: string,
+  sourceName = "",
+): InvoiceAnalysis {
   if (sampleId && invoiceAnalyses[sampleId]) {
     return invoiceAnalyses[sampleId];
   }
 
   const inferredSampleId = inferSampleId(invoiceText || invoiceSamples[0].invoiceText);
-  const parsed = parseInvoiceFields(invoiceText);
+  const parsed = parseInvoiceFields(invoiceText, sourceName);
 
   if (!parsed) {
     return invoiceAnalyses[inferredSampleId];
@@ -73,7 +77,7 @@ export function buildUploadedFallbackAnalysis(fileName: string, mimeType: string
   };
 }
 
-function parseInvoiceFields(invoiceText: string): ParsedInvoiceFields | null {
+function parseInvoiceFields(invoiceText: string, sourceName = ""): ParsedInvoiceFields | null {
   const normalized = invoiceText.trim();
 
   if (!normalized) {
@@ -98,10 +102,11 @@ function parseInvoiceFields(invoiceText: string): ParsedInvoiceFields | null {
     matchFirst(normalized, /due\s*:\s*([0-9]{4}-[0-9]{2}-[0-9]{2})/i) ||
     matchFirst(normalized, /due date\s*:\s*([0-9]{4}-[0-9]{2}-[0-9]{2})/i) ||
     "Pending extraction";
-  const category = (
+  const rawCategory = (
     matchFirst(normalized, /category\s*:\s*(.+)/i)?.split(/\r?\n/)[0] ||
     inferCategory(normalized)
   ).toLowerCase();
+  const category = normalizeCategory(rawCategory, `${sourceName}\n${normalized}`);
 
   return {
     invoiceId,
@@ -110,7 +115,7 @@ function parseInvoiceFields(invoiceText: string): ParsedInvoiceFields | null {
     currency,
     dueDate,
     category,
-    notes: normalized,
+    notes: `${sourceName}\n${normalized}`.trim(),
   };
 }
 
@@ -229,6 +234,56 @@ function inferCurrency(invoiceText: string, token?: string): "EUR" | "USD" {
 
 function inferCategory(invoiceText: string) {
   const normalized = invoiceText.toLowerCase();
+
+  if (
+    normalized.includes("cloud") ||
+    normalized.includes("gpu") ||
+    normalized.includes("compute") ||
+    normalized.includes("hardware")
+  ) {
+    return "cloud-credits";
+  }
+
+  if (
+    normalized.includes("enrichment") ||
+    normalized.includes("lead list") ||
+    normalized.includes("proxies")
+  ) {
+    return "lead-enrichment";
+  }
+
+  return "vendor-risk-data";
+}
+
+function normalizeCategory(rawCategory: string, invoiceText: string) {
+  const category = rawCategory.toLowerCase();
+  const normalized = `${category} ${invoiceText}`.toLowerCase();
+
+  if (
+    category.includes("cloud") ||
+    category.includes("infrastructure") ||
+    category.includes("compute") ||
+    category.includes("hardware")
+  ) {
+    return "cloud-credits";
+  }
+
+  if (
+    category.includes("data & api") ||
+    category.includes("uncategorized data") ||
+    category.includes("lead-enrichment")
+  ) {
+    return "lead-enrichment";
+  }
+
+  if (
+    category.includes("software/api") ||
+    category.includes("software") ||
+    category.includes("vendor-risk") ||
+    normalized.includes("vendor risk report")
+  ) {
+    return "vendor-risk-data";
+  }
 
   if (
     normalized.includes("cloud") ||

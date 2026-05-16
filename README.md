@@ -33,6 +33,15 @@ AgentPayOps demonstrates that control layer through one vertical workflow:
 - Health endpoint at `/api/health`
 - Supabase/Postgres schema and optional persistence for agent runs, transactions, and audit events
 
+## Hackathon Submission
+
+- Public GitHub repository: <https://github.com/anilandcode/AgentPayOps>
+- Primary Vultr/Coolify demo URL: <http://st2bm9ob1tiu62tc8jatrwlk.149.28.34.93.sslip.io/>
+- Backup Vercel demo URL: <https://agent-pay-ops.vercel.app/>
+- Track fit: B2B FinOps & Compliance for autonomous agents using X402-style programmable payment controls.
+- Technology partners used: Vultr for the deployed VM/web backend and Gemini for finance reasoning and invoice extraction support.
+- Supabase is the system of record for completed runs, transactions, and audit events when the Supabase environment variables are configured.
+
 ## Architecture
 
 ```text
@@ -47,6 +56,18 @@ Browser
 ```
 
 The app keeps `X402_MODE=demo` for browser-based judging, while the same vendor-risk route can be switched to official `@x402/next` settlement with `X402_MODE=real` and a receiving address.
+
+## Reproducible Demo Invoices
+
+The `demo-files/` folder contains the invoice files used in the recorded walkthrough:
+
+| File | Expected result | Why |
+| --- | --- | --- |
+| `Invoice_Standard_Data.txt` | `approved` | Low-value software/API invoice with a vendor-risk surcharge. |
+| `Invoice_HighValue_Compute.txt` | `escalated` | High-value GPU/cloud compute invoice above autonomous approval limits. |
+| `Invoice_High_Limit_Cloud.txt.txt` | `escalated` | High-value AWS infrastructure invoice above autonomous approval limits. |
+| `Invoice_Blocked_Vendor.txt` | `blocked` | Offshore/uncategorized lead-list vendor with bypass proxy line items. |
+| `Invoice_Duplicate_Enrichment.txt` | `blocked` | Duplicate enrichment purchase pattern from an agent-initiated lead-generation flow. |
 
 ## Environment
 
@@ -161,7 +182,7 @@ Invoice upload:
 
 ```bash
 curl -X POST http://localhost:3000/api/invoices/upload \
-  -F 'invoice=@./sample-invoice.txt'
+  -F 'invoice=@./demo-files/Invoice_Duplicate_Enrichment.txt'
 ```
 
 ## Next Implementation Steps

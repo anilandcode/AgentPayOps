@@ -1,0 +1,17 @@
+INVOICE
+-------------------------------------------------
+Vendor: AWS (Amazon Web Services)
+Vendor Address: 410 Terry Ave N, Seattle, WA 98109
+Invoice Number: AWS-2026-MAY-99412
+Date: May 16, 2026
+
+Billed To: AgentPayOps Internal
+-------------------------------------------------
+Item                                          Amount
+EC2 p4d.24xlarge Instances - 1400 hours       $45,900.00
+S3 Standard Storage - 400 TB                  $12,500.00
+
+TOTAL DUE:                                    $58,400.00
+Category: Cloud Infrastructure
+Risk Assessment Status: Pending
+Memo: Monthly infrastructure and model training compute costs.
