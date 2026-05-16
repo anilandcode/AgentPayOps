@@ -81,6 +81,7 @@ function parseInvoiceFields(invoiceText: string): ParsedInvoiceFields | null {
   }
 
   const invoiceId =
+    matchFirst(normalized, /invoice\s+number\s*:\s*([A-Z0-9-]+(?:-[\w-]+)?)/i) ||
     matchFirst(normalized, /invoice\s*[:#]?\s*([A-Z]{2,}-[\w-]+)/i) ||
     matchFirst(normalized, /\b(INV-[\w-]+)\b/i) ||
     `INV-${Date.now().toString().slice(-6)}`;
@@ -89,7 +90,7 @@ function parseInvoiceFields(invoiceText: string): ParsedInvoiceFields | null {
     matchFirst(normalized, /supplier\s*:\s*(.+)/i) ||
     "Uploaded Vendor";
   const amountMatch = normalized.match(
-    /(?:amount|total|balance due)\s*:\s*(EUR|USD|€|\$)?\s*([\d,]+(?:\.\d+)?)/i,
+    /(?:amount|total due|total|balance due)\s*:\s*(EUR|USD|€|\$)?\s*([\d,]+(?:\.\d+)?)/i,
   );
   const amount = amountMatch ? Number(amountMatch[2].replace(/,/g, "")) : 0;
   const currency = inferCurrency(normalized, amountMatch?.[1]);
@@ -98,7 +99,7 @@ function parseInvoiceFields(invoiceText: string): ParsedInvoiceFields | null {
     matchFirst(normalized, /due date\s*:\s*([0-9]{4}-[0-9]{2}-[0-9]{2})/i) ||
     "Pending extraction";
   const category = (
-    matchFirst(normalized, /category\s*:\s*([a-z0-9-]+)/i) ||
+    matchFirst(normalized, /category\s*:\s*(.+)/i)?.split(/\r?\n/)[0] ||
     inferCategory(normalized)
   ).toLowerCase();
 
@@ -144,11 +145,24 @@ function buildAnalysis(fields: ParsedInvoiceFields): InvoiceAnalysis {
 function inferDecision(fields: ParsedInvoiceFields): Decision {
   const normalized = `${fields.vendorName} ${fields.category} ${fields.notes}`.toLowerCase();
 
-  if (normalized.includes("apex enrichment") || normalized.includes("duplicate")) {
+  if (
+    normalized.includes("apex enrichment") ||
+    normalized.includes("duplicate") ||
+    normalized.includes("shadyscrape") ||
+    normalized.includes("bypass proxies") ||
+    normalized.includes("offshore jurisdiction") ||
+    normalized.includes("uncategorized data")
+  ) {
     return "blocked";
   }
 
-  if (fields.amount >= 10000 || normalized.includes("purchase order not found")) {
+  if (
+    fields.amount >= 10000 ||
+    normalized.includes("gpu cluster") ||
+    normalized.includes("cloud compute") ||
+    normalized.includes("hardware") ||
+    normalized.includes("purchase order not found")
+  ) {
     return "escalated";
   }
 
@@ -216,11 +230,20 @@ function inferCurrency(invoiceText: string, token?: string): "EUR" | "USD" {
 function inferCategory(invoiceText: string) {
   const normalized = invoiceText.toLowerCase();
 
-  if (normalized.includes("cloud")) {
+  if (
+    normalized.includes("cloud") ||
+    normalized.includes("gpu") ||
+    normalized.includes("compute") ||
+    normalized.includes("hardware")
+  ) {
     return "cloud-credits";
   }
 
-  if (normalized.includes("enrichment")) {
+  if (
+    normalized.includes("enrichment") ||
+    normalized.includes("lead list") ||
+    normalized.includes("proxies")
+  ) {
     return "lead-enrichment";
   }
 
