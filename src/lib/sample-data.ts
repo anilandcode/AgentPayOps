@@ -1,4 +1,9 @@
-export type Decision = "approved" | "blocked" | "escalated" | "pending";
+export type Decision =
+  | "approved"
+  | "blocked"
+  | "escalated"
+  | "pending"
+  | "released";
 
 export type Invoice = {
   id: string;
@@ -36,6 +41,8 @@ export type Transaction = {
   reason: string;
   x402Reference: string;
   createdAt: string;
+  releasedAt?: string | null;
+  decidedBy?: string | null;
 };
 
 export type AuditEvent = {
@@ -418,9 +425,21 @@ export const auditEvents: AuditEvent[] = [
   },
 ];
 
-export const dashboardStats = {
-  agentSpend: 12600.6,
-  blockedSpend: 930.18,
-  moneySaved: 930.18,
-  pendingApprovals: 1,
-};
+export function computeDashboardStats(liveTransactions: Transaction[]) {
+  const rows = liveTransactions.length > 0 ? liveTransactions : transactions;
+  const spent = rows
+    .filter((t) => t.status === "approved" || t.status === "released")
+    .reduce((sum, t) => sum + t.amount, 0);
+  const stopped = rows
+    .filter((t) => t.status === "blocked" || t.status === "escalated")
+    .reduce((sum, t) => sum + t.amount, 0);
+  const pending = rows.filter((t) => t.status === "escalated").length;
+  return {
+    agentSpend: spent + stopped,
+    blockedSpend: stopped,
+    moneySaved: stopped,
+    pendingApprovals: pending,
+  };
+}
+
+export const dashboardStats = computeDashboardStats([]);

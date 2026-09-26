@@ -56,6 +56,8 @@ type TransactionRow = {
   reason: string;
   x402_reference: string;
   created_at: string;
+  released_at?: string | null;
+  decided_by?: string | null;
 };
 
 type AuditEventRow = {
@@ -134,6 +136,8 @@ function mapTransaction(row: TransactionRow): Transaction {
     reason: row.reason,
     x402Reference: row.x402_reference,
     createdAt: row.created_at,
+    releasedAt: row.released_at ?? null,
+    decidedBy: row.decided_by ?? null,
   };
 }
 
@@ -274,4 +278,101 @@ export async function saveAgentRun(result: AgentRunRecord) {
     transaction,
     auditEvent,
   };
+}
+
+/* ------------------------------------------------------------------ */
+/* Human approval queue — releasing or cancelling escalated payments   */
+/* ------------------------------------------------------------------ */
+
+export type HumanDecision = "released" | "cancelled";
+
+const memoryLedger = new Map<
+  string,
+  { status: Decision; reason: string; decidedBy: string; at: string }
+>();
+
+export async function recordHumanDecision(input: {
+  transactionId: string;
+  decision: HumanDecision;
+  actorName: string;
+  note?: string;
+}) {
+  const supabase = createServerSupabaseClient();
+  const at = new Date().toISOString();
+  const paymentIssued = input.decision === "released";
+  const reason = paymentIssued
+    ? `Human finance approval granted${input.note ? `: ${input.note}` : "."}`
+    : `Human finance approval denied${input.note ? `: ${input.note}` : "."}`;
+
+  const auditRow: AuditEventRow = {
+    id: `HUMAN-${crypto.randomUUID().slice(0, 8)}`,
+    actor_type: "human",
+    actor_name: input.actorName,
+    action: paymentIssued
+      ? "Released escalated payment"
+      : "Cancelled escalated payment",
+    target: input.transactionId,
+    decision: paymentIssued ? "released" : "blocked",
+    reasoning: reason,
+    created_at: at,
+  };
+
+  if (!supabase) {
+    const prior = memoryLedger.get(input.transactionId);
+    memoryLedger.set(input.transactionId, {
+      status: paymentIssued ? "released" : "blocked",
+      reason,
+      decidedBy: input.actorName,
+      at,
+    });
+    return {
+      source: "memory" as const,
+      statusChanged: Boolean(prior) || paymentIssued,
+      auditEvent: mapAuditEvent(auditRow),
+    };
+  }
+
+  const { data: updated, error: updateError } = await supabase
+    .from("transactions")
+    .update({
+      status: paymentIssued ? "released" : "blocked",
+      reason,
+      decided_by: input.actorName,
+      released_at: paymentIssued ? at : null,
+      x402_reference: paymentIssued
+        ? `x402-human-${crypto.randomUUID().slice(0, 8)}`
+        : "payment-cancelled-by-human",
+    })
+    .eq("id", input.transactionId)
+    .eq("status", "escalated")
+    .select("id");
+
+  if (updateError || !updated || updated.length === 0) {
+    return {
+      source: "supabase" as const,
+      error:
+        updateError?.message ||
+        "Transaction is no longer awaiting human approval.",
+    };
+  }
+
+  const { error: auditError } = await supabase
+    .from("audit_events")
+    .insert(auditRow);
+
+  return {
+    source: "supabase" as const,
+    auditEvent: mapAuditEvent(auditRow),
+    auditSaved: !auditError,
+  };
+}
+
+export async function listPendingApprovals() {
+  const snapshot = await getOperationsSnapshot();
+  const pending = snapshot.transactions.filter(
+    (transaction) => transaction.status === "escalated",
+  );
+  return snapshot.source === "sample"
+    ? pending.filter((t) => !memoryLedger.has(t.id))
+    : pending;
 }

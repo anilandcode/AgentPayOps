@@ -1,7 +1,8 @@
 "use client";
 
-import { FileSearch, PlusCircle } from "lucide-react";
-import { useEffect, useMemo, useState } from "react";
+import { FileSearch, Inbox, PlusCircle, ShieldCheck, XCircle } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   AgentWorkflow,
   type WorkflowRunResult,
@@ -19,6 +20,7 @@ const statusStyles: Record<Decision, string> = {
   blocked: "border-rose-200 bg-rose-50 text-rose-700",
   escalated: "border-amber-200 bg-amber-50 text-amber-700",
   pending: "border-slate-200 bg-slate-50 text-slate-600",
+  released: "border-teal-200 bg-teal-50 text-teal-700",
 };
 
 const currency = new Intl.NumberFormat("en-US", {
@@ -205,7 +207,152 @@ function LiveAuditTimeline({ events }: { events: AuditEvent[] }) {
   );
 }
 
+export type TransactionForQueue = Transaction & {
+  decidedBy?: string | null;
+};
+
+function ApprovalQueue({
+  rows,
+  onDecided,
+}: {
+  rows: Transaction[];
+  onDecided: () => void;
+}) {
+  const [busyId, setBusyId] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [notes, setNotes] = useState<Record<string, string>>({});
+
+  const decide = useCallback(
+    async (transactionId: string, decision: "released" | "cancelled") => {
+      setBusyId(transactionId);
+      setError(null);
+      try {
+        const response = await fetch("/api/payments/decision", {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({
+            transactionId,
+            decision,
+            actorName: "Finance Controller",
+            note: notes[transactionId] || undefined,
+          }),
+        });
+        const body = await response.json();
+        if (!response.ok) {
+          setError(body.error || "Decision rejected.");
+        } else {
+          setNotes((current) => {
+            const next = { ...current };
+            delete next[transactionId];
+            return next;
+          });
+          onDecided();
+        }
+      } catch {
+        setError("Could not reach the decision service.");
+      } finally {
+        setBusyId(null);
+      }
+    },
+    [notes, onDecided],
+  );
+
+  return (
+    <section className="rounded-lg border border-amber-200 bg-white shadow-sm">
+      <div className="flex flex-wrap items-center justify-between gap-3 border-b border-amber-100 p-5">
+        <div className="flex items-center gap-3">
+          <span className="flex size-9 items-center justify-center rounded-lg bg-amber-100 text-amber-700">
+            <Inbox className="size-4" />
+          </span>
+          <div>
+            <p className="text-sm font-semibold uppercase tracking-wide text-slate-500">
+              Human Approval Queue
+            </p>
+            <h2 className="text-2xl font-semibold tracking-tight text-slate-950">
+              Escalated payments awaiting a controller
+            </h2>
+          </div>
+        </div>
+        <span className="rounded-full bg-amber-50 px-3 py-1 text-sm font-semibold text-amber-800">
+          {rows.length} pending
+        </span>
+      </div>
+
+      {error ? (
+        <p className="border-b border-rose-100 bg-rose-50 px-5 py-3 text-sm text-rose-700">
+          {error}
+        </p>
+      ) : null}
+
+      {rows.length === 0 ? (
+        <p className="p-5 text-sm text-slate-500">
+          Nothing awaits human review — every escalated payment has been
+          released or cancelled by a controller.
+        </p>
+      ) : (
+        <ul className="divide-y divide-amber-100">
+          {rows.map((transaction) => (
+            <li
+              className="flex flex-col gap-3 p-5 lg:flex-row lg:items-start lg:justify-between"
+              key={transaction.id}
+            >
+              <div className="min-w-0">
+                <div className="flex flex-wrap items-center gap-3">
+                  <span className="font-semibold text-slate-950">
+                    {transaction.id}
+                  </span>
+                  <StatusPill status={transaction.status} />
+                  <span className="text-sm text-slate-500">
+                    {transaction.vendorName} ·{" "}
+                    {currency.format(transaction.amount)} ·{" "}
+                    {transaction.invoiceId}
+                  </span>
+                </div>
+                <p className="mt-2 max-w-3xl text-sm leading-6 text-slate-600">
+                  {transaction.reason}
+                </p>
+                <input
+                  className="mt-3 w-full max-w-md rounded-md border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-800 placeholder:text-slate-400 focus:border-amber-400 focus:outline-none"
+                  placeholder="Optional note for the audit trail…"
+                  value={notes[transaction.id] ?? ""}
+                  onChange={(event) =>
+                    setNotes((current) => ({
+                      ...current,
+                      [transaction.id]: event.target.value,
+                    }))
+                  }
+                />
+              </div>
+              <div className="flex shrink-0 gap-2">
+                <button
+                  className="inline-flex items-center gap-2 rounded-lg bg-emerald-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-emerald-700 disabled:cursor-not-allowed disabled:opacity-50"
+                  disabled={busyId === transaction.id}
+                  onClick={() => decide(transaction.id, "released")}
+                  type="button"
+                >
+                  <ShieldCheck className="size-4" />
+                  {busyId === transaction.id ? "Working…" : "Release payment"}
+                </button>
+                <button
+                  className="inline-flex items-center gap-2 rounded-lg border border-rose-200 bg-white px-4 py-2 text-sm font-semibold text-rose-700 transition hover:bg-rose-50 disabled:cursor-not-allowed disabled:opacity-50"
+                  disabled={busyId === transaction.id}
+                  onClick={() => decide(transaction.id, "cancelled")}
+                  type="button"
+                >
+                  <XCircle className="size-4" />
+                  Cancel
+                </button>
+              </div>
+            </li>
+          ))}
+        </ul>
+      )}
+    </section>
+  );
+}
+
 export function LiveOperationsCenter() {
+  const router = useRouter();
   const [baseTransactions, setBaseTransactions] =
     useState<Transaction[]>(transactions);
   const [baseAuditEvents, setBaseAuditEvents] =
@@ -222,35 +369,41 @@ export function LiveOperationsCenter() {
     () => [...liveAuditEvents, ...baseAuditEvents],
     [baseAuditEvents, liveAuditEvents],
   );
+  const pendingApprovals = useMemo(
+    () => allTransactions.filter((transaction) => transaction.status === "escalated"),
+    [allTransactions],
+  );
+
+  const loadOperations = useCallback(async () => {
+    const response = await fetch("/api/audit");
+    const body = (await response.json()) as {
+      source?: "sample" | "supabase";
+      transactions: Transaction[];
+      auditEvents: AuditEvent[];
+    };
+
+    setBaseTransactions(body.transactions);
+    setBaseAuditEvents(body.auditEvents);
+    setSource(body.source ?? "sample");
+    setLiveTransactions([]);
+    setLiveAuditEvents([]);
+  }, []);
 
   useEffect(() => {
     let isActive = true;
 
-    async function loadOperations() {
-      const response = await fetch("/api/audit");
-      const body = (await response.json()) as {
-        source?: "sample" | "supabase";
-        transactions: Transaction[];
-        auditEvents: AuditEvent[];
-      };
-
-      if (!isActive) {
-        return;
-      }
-
-      setBaseTransactions(body.transactions);
-      setBaseAuditEvents(body.auditEvents);
-      setSource(body.source ?? "sample");
-    }
-
-    loadOperations().catch(() => {
-      setSource("sample");
-    });
+    loadOperations()
+      .then(() => undefined)
+      .catch(() => {
+        if (isActive) {
+          setSource("sample");
+        }
+      });
 
     return () => {
       isActive = false;
     };
-  }, []);
+  }, [loadOperations]);
 
   async function handleRunComplete(result: WorkflowRunResult) {
     try {
@@ -290,6 +443,13 @@ export function LiveOperationsCenter() {
   return (
     <>
       <AgentWorkflow onRunComplete={handleRunComplete} />
+      <ApprovalQueue
+        onDecided={() => {
+          void loadOperations();
+          router.refresh();
+        }}
+        rows={pendingApprovals}
+      />
       <LiveTransactionTable rows={allTransactions} source={source} />
       <LiveAuditTimeline events={allAuditEvents} />
     </>

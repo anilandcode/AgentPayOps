@@ -29,6 +29,7 @@ const decisionStyles: Record<Decision, string> = {
   blocked: "border-rose-200 bg-rose-50 text-rose-700",
   escalated: "border-amber-200 bg-amber-50 text-amber-700",
   pending: "border-slate-200 bg-slate-50 text-slate-600",
+  released: "border-teal-200 bg-teal-50 text-teal-700",
 };
 
 function formatMoney(amount: number, currencyCode: InvoiceAnalysis["currency"]) {

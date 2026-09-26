@@ -16,17 +16,21 @@ import type { ElementType } from "react";
 import { InvoiceIntake } from "@/components/invoice-intake";
 import { LiveOperationsCenter } from "@/components/live-operations-center";
 import {
-  dashboardStats,
+  computeDashboardStats,
   invoices,
   policies,
   type Decision,
 } from "@/lib/sample-data";
+import { getOperationsSnapshot } from "@/lib/persistence";
+
+export const dynamic = "force-dynamic";
 
 const statusStyles: Record<Decision, string> = {
   approved: "border-emerald-200 bg-emerald-50 text-emerald-700",
   blocked: "border-rose-200 bg-rose-50 text-rose-700",
   escalated: "border-amber-200 bg-amber-50 text-amber-700",
   pending: "border-slate-200 bg-slate-50 text-slate-600",
+  released: "border-teal-200 bg-teal-50 text-teal-700",
 };
 
 const statusIcons: Record<Decision, ElementType> = {
@@ -34,6 +38,7 @@ const statusIcons: Record<Decision, ElementType> = {
   blocked: XCircle,
   escalated: AlertTriangle,
   pending: Gauge,
+  released: CheckCircle2,
 };
 
 const currency = new Intl.NumberFormat("en-US", {
@@ -253,7 +258,9 @@ function PolicyControls() {
   );
 }
 
-export default function Home() {
+export default async function Home() {
+  const snapshot = await getOperationsSnapshot();
+  const dashboardStats = computeDashboardStats(snapshot.transactions);
   return (
     <main className="min-h-screen bg-slate-100 text-slate-950">
       <div className="mx-auto flex w-full max-w-7xl flex-col gap-6 px-5 py-6 sm:px-8 lg:px-10">
