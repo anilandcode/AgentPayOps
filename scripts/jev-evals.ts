@@ -25,7 +25,6 @@ async function main() {
   const { assessPaymentRisk, assessInvoiceRisk } = (await import(
     "../src/lib/jev-risk"
   )) as Gate;
-  const { askJev } = (await import("../src/lib/jev-client")) as typeof import("../src/lib/jev-client");
 
   type Row = { id: string; kind: string; outcome: string; detail: string; pass: boolean };
   const rows: Row[] = [];

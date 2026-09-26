@@ -408,18 +408,33 @@ export function LiveOperationsCenter() {
   useEffect(() => {
     let isActive = true;
 
-    loadOperations()
-      .then(() => undefined)
-      .catch(() => {
-        if (isActive) {
-          setSource("sample");
-        }
-      });
+    async function initialLoad() {
+      const response = await fetch("/api/audit");
+      const body = (await response.json()) as {
+        source?: "sample" | "supabase";
+        transactions: Transaction[];
+        auditEvents: AuditEvent[];
+      };
+
+      if (!isActive) {
+        return;
+      }
+
+      setBaseTransactions(body.transactions);
+      setBaseAuditEvents(body.auditEvents);
+      setSource(body.source ?? "sample");
+    }
+
+    initialLoad().catch(() => {
+      if (isActive) {
+        setSource("sample");
+      }
+    });
 
     return () => {
       isActive = false;
     };
-  }, [loadOperations]);
+  }, []);
 
   async function handleRunComplete(result: WorkflowRunResult) {
     try {
