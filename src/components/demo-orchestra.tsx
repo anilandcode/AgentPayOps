@@ -248,7 +248,7 @@ export function DemoOrchestra() {
 
   const jevNote = (jev: Partial<JevPayment & { fraudSignals: number; severity: string }> | null | undefined) =>
     jev
-      ? "susp" in jev
+      ? "suspicious" in jev
         ? `susp ${(jev.suspicious ?? 0).toFixed(2)} · ${jev.riskLevel} · ${jev.latencyMs} ms · ~$${(((jev.inputTokens ?? 900) * 0.042) / 1_000_000).toFixed(5)}`
         : `fraud ${(jev.fraudSignals ?? 0).toFixed(2)} · ${jev.severity}`
       : undefined;
