@@ -32,6 +32,7 @@ AgentPayOps demonstrates that control layer through one vertical workflow:
 - Dockerfile and Docker Compose configuration for Vultr/Coolify deployment
 - Health endpoint at `/api/health`
 - Supabase/Postgres schema and optional persistence for agent runs, transactions, and audit events
+- Runnable policy-engine eval harness (`npm run evals`) with a confusion matrix and a false-approve-rate gate
 
 ## Hackathon Submission
 
@@ -68,6 +69,18 @@ The `demo-files/` folder contains the invoice files used in the recorded walkthr
 | `Invoice_High_Limit_Cloud.txt.txt` | `escalated` | High-value AWS infrastructure invoice above autonomous approval limits. |
 | `Invoice_Blocked_Vendor.txt` | `blocked` | Offshore/uncategorized lead-list vendor with bypass proxy line items. |
 | `Invoice_Duplicate_Enrichment.txt` | `blocked` | Duplicate enrichment purchase pattern from an agent-initiated lead-generation flow. |
+
+## Policy Engine Evals
+
+`npm run evals` runs 12 labeled scenarios against the real `evaluatePayment()` in
+`src/lib/policy-engine.ts` and prints a confusion matrix plus a `falseApproveRate`
+(a risky payment wrongly approved, must be 0):
+
+- accuracy: 1.000
+- falseApproveRate: 0.000
+
+Full output is in [`EVAL_SUMMARY.md`](./EVAL_SUMMARY.md). Role and hiring-rubric
+alignment notes are in [`ROLE_ALIGNMENT.md`](./ROLE_ALIGNMENT.md).
 
 ## Environment
 
