@@ -34,6 +34,14 @@ export type PaymentAttemptResponse = {
       passed: boolean;
     }[];
   };
+  jev?: {
+    model: string;
+    suspicious: number;
+    humanReview: number;
+    riskLevel: string;
+    escalated: boolean;
+    latencyMs: number;
+  } | null;
 };
 
 export type VendorRiskResponse = {
@@ -201,6 +209,7 @@ export function AgentWorkflow({ onRunComplete }: AgentWorkflowProps) {
           amount: activeScenario.amount,
           category: activeScenario.category,
           invoiceId: activeScenario.invoiceId,
+          context: activeScenario.context,
         }),
       });
       const paymentBody = (await paymentResponse.json()) as PaymentAttemptResponse;
@@ -442,6 +451,40 @@ export function AgentWorkflow({ onRunComplete }: AgentWorkflowProps) {
                   </div>
                 ))}
               </div>
+            </div>
+          ) : null}
+
+          {paymentResult?.jev ? (
+            <div className="mt-4 rounded-lg border border-violet-200 bg-violet-50 p-4">
+              <div className="flex flex-wrap items-center justify-between gap-3">
+                <div className="flex items-center gap-2 font-semibold text-violet-950">
+                  <ShieldAlert className="size-4 text-violet-700" />
+                  Jev System One fraud review
+                </div>
+                <span className="rounded-full border border-violet-200 bg-white px-2.5 py-1 text-xs font-semibold text-violet-800">
+                  {paymentResult.jev.riskLevel} risk · {paymentResult.jev.latencyMs} ms
+                </span>
+              </div>
+              <div className="mt-3 grid gap-2 sm:grid-cols-3">
+                {[
+                  { label: "Fraud signals", value: paymentResult.jev.suspicious },
+                  { label: "Needs human review", value: paymentResult.jev.humanReview },
+                  { label: "Escalated by gate", value: paymentResult.jev.escalated ? 1 : 0 },
+                ].map((metric) => (
+                  <div className="rounded-md bg-white px-3 py-2" key={metric.label}>
+                    <p className="text-xs font-semibold uppercase tracking-wide text-violet-700">
+                      {metric.label}
+                    </p>
+                    <p className="mt-1 text-lg font-semibold text-violet-950">
+                      {(metric.value * 100).toFixed(0)}%
+                    </p>
+                  </div>
+                ))}
+              </div>
+              <p className="mt-3 text-sm leading-6 text-violet-900">
+                Deterministic policy is the floor; Jev can only tighten an approved
+                decision to human review — never release funds.
+              </p>
             </div>
           ) : null}
 

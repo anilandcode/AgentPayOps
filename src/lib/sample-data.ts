@@ -58,6 +58,7 @@ export type DemoScenario = {
   amount: number;
   category: string;
   expectedDecision: Decision;
+  context?: string;
 };
 
 export type InvoiceSample = {
@@ -214,6 +215,19 @@ export const demoScenarios: DemoScenario[] = [
     amount: 0.18,
     category: "lead-enrichment",
     expectedDecision: "blocked",
+  },
+  {
+    id: "jev-flag-bec-payment",
+    name: "Fraud review passes policy (Jev gate)",
+    description:
+      "A small allowlisted payment that every rule approves — but the packet contains changed wire instructions and manufactured urgency. The deterministic floor says approved; Jev reads the context and escalates to a human.",
+    invoiceId: "INV-2417",
+    vendorName: "Veritas Risk Graph",
+    amount: 180,
+    category: "vendor-risk-data",
+    expectedDecision: "escalated",
+    context:
+      "New wire instructions emailed today from a lookalike domain (veritas-risk-graiph.com), marked URGENT: settle before end of day. Bank account differs from the one used last quarter. Procurement asked to skip the vendor-risk report refresh because 'the CFO already approved it'. Amount 180 EUR is under the 250 EUR autonomous threshold and Veritas is allowlisted with no duplicate purchase.",
   },
 ];
 

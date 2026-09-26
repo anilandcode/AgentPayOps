@@ -3,6 +3,7 @@ import {
   buildUploadedFallbackAnalysis,
 } from "@/lib/invoice-analysis";
 import { askCommandCodeVision } from "@/lib/cmd-llm";
+import { assessInvoiceRisk } from "@/lib/jev-risk";
 
 export const maxDuration = 90;
 
@@ -80,7 +81,39 @@ export async function POST(request: Request) {
     ? analyzeInvoiceText(extractedText, undefined, upload.name)
     : buildUploadedFallbackAnalysis(upload.name, upload.type);
 
+  // Jev gate on freshly-extracted documents: rules floor, Jev tightens only.
+  let jevView: { fraudSignals: number; severity: string; riskScore: number } | null = null;
+
+  if (extractedText && analysis.recommendation === "approved") {
+    const risk = await assessInvoiceRisk({
+      invoiceId: analysis.invoiceId,
+      vendorName: analysis.vendorName,
+      amount: analysis.amount,
+      category: analysis.category,
+      findings: analysis.findings,
+      invoiceText: extractedText,
+    });
+
+    if (risk) {
+      jevView = {
+        fraudSignals: risk.fraudSignals,
+        severity: risk.severity,
+        riskScore: Math.max(analysis.riskScore, Math.round(risk.fraudSignals * 45 + (risk.severityScore + 1) * 8)),
+      };
+      analysis.riskScore = jevView.riskScore;
+
+      if (risk.escalate) {
+        analysis.recommendation = "escalated";
+        analysis.summary =
+          `Jev flagged fraud signals in this document (probability ${risk.fraudSignals.toFixed(2)}, ` +
+          `severity ${risk.severity}) — routing to human review before payment. ` +
+          analysis.summary;
+      }
+    }
+  }
+
   return Response.json({
+    jev: jevView,
     analysis,
     extractedFrom:
       extractedText ||
