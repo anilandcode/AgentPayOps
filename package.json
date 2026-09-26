@@ -7,7 +7,8 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
-    "evals": "tsx scripts/policy-evals.ts"
+    "evals": "tsx scripts/policy-evals.ts",
+    "evals:jev": "tsx scripts/jev-evals.ts"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.105.4",
