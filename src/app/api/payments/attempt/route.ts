@@ -91,6 +91,7 @@ export async function POST(request: Request) {
             riskLevel: riskAssessment.riskLevel,
             escalated: riskAssessment.escalate,
             latencyMs: riskAssessment.latencyMs,
+            inputTokens: riskAssessment.inputTokens,
           }
         : null,
     });
@@ -109,6 +110,7 @@ export async function POST(request: Request) {
           riskLevel: riskAssessment.riskLevel,
           escalated: riskAssessment.escalate,
           latencyMs: riskAssessment.latencyMs,
+          inputTokens: riskAssessment.inputTokens,
         }
       : null,
   });

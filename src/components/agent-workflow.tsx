@@ -41,6 +41,7 @@ export type PaymentAttemptResponse = {
     riskLevel: string;
     escalated: boolean;
     latencyMs: number;
+    inputTokens?: number;
   } | null;
 };
 
@@ -452,6 +453,45 @@ export function AgentWorkflow({ onRunComplete }: AgentWorkflowProps) {
                   </div>
                 ))}
               </div>
+            </div>
+          ) : null}
+
+          {paymentResult ? (
+            <div className="mt-4 flex flex-wrap items-center gap-x-4 gap-y-1 rounded-lg border border-slate-200 bg-slate-50 px-4 py-2.5 text-xs font-medium text-slate-600">
+              <span className="font-semibold uppercase tracking-wide text-slate-500">
+                Decision cost
+              </span>
+              <span>
+                Policy rules <span className="font-mono">0 ms · $0</span>
+              </span>
+              {paymentResult.jev ? (
+                <span>
+                  Jev gate{" "}
+                  <span className="font-mono">
+                    {paymentResult.jev.latencyMs} ms · ~$
+                    {(((paymentResult.jev.inputTokens ?? 900) * 0.042) / 1_000_000).toFixed(5)}
+                  </span>
+                </span>
+              ) : (
+                <span className="text-slate-400">
+                  Jev gate skipped (decision already made by rules)
+                </span>
+              )}
+              {financeMemo ? (
+                <span>
+                  {financeMemo.source === "deterministic-fallback"
+                    ? "Memo (fallback)"
+                    : "Memo (Command Code)"}{" "}
+                  <span className="font-mono">
+                    {financeMemo.latencyMs
+                      ? `${(financeMemo.latencyMs / 1000).toFixed(1)} s`
+                      : "—"}
+                  </span>
+                </span>
+              ) : null}
+              <span className="ml-auto text-slate-400">
+                ~1k tokens ≈ $0.00004 / decision
+              </span>
             </div>
           ) : null}
 

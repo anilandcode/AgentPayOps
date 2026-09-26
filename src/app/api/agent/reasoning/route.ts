@@ -62,7 +62,6 @@ export async function POST(request: Request) {
     checks: payload.checks,
   };
   const fallback = buildFallbackMemo(input);
-
   const prompt = `You are a finance controls analyst explaining an autonomous AI agent payment decision. Do not use any tools, do not read any files; answer directly from the input below.
 Return ONLY valid JSON (no markdown fences) with these keys:
 headline: short sentence
@@ -75,11 +74,16 @@ Decision input:
 ${JSON.stringify(input, null, 2)}
 `;
 
+  const memoStartedAt = Date.now();
   const answer = await askCommandCode(prompt, "agent-reasoning");
+  const memoLatencyMs = Date.now() - memoStartedAt;
 
   if (!answer) {
-    return Response.json(fallback);
+    return Response.json({ ...fallback, latencyMs: memoLatencyMs });
   }
 
-  return Response.json(parseMemo(answer.text, fallback, answer.model));
+  return Response.json({
+    ...parseMemo(answer.text, fallback, answer.model),
+    latencyMs: memoLatencyMs,
+  });
 }

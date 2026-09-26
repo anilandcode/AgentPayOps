@@ -20,6 +20,7 @@ export type FinanceMemo = {
   riskLevel: "low" | "medium" | "high";
   nextAction: string;
   evidence: string[];
+  latencyMs?: number;
 };
 
 export function buildFallbackMemo(input: FinanceMemoInput): FinanceMemo {
