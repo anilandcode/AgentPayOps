@@ -1,6 +1,6 @@
 "use client";
 
-import { FileSearch, Inbox, PlusCircle, ShieldCheck, XCircle } from "lucide-react";
+import { Download, FileSearch, Inbox, PlusCircle, ShieldCheck, XCircle } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import {
@@ -172,7 +172,23 @@ function LiveAuditTimeline({ events }: { events: AuditEvent[] }) {
             Decision trail
           </h2>
         </div>
-        <FileSearch className="size-5 text-slate-500" />
+        <div className="flex items-center gap-2">
+          <a
+            className="inline-flex items-center gap-2 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-100"
+            href="/api/audit/export?format=csv"
+          >
+            <Download className="size-4" />
+            CSV
+          </a>
+          <a
+            className="inline-flex items-center gap-2 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-100"
+            href="/api/audit/export?format=json"
+          >
+            <Download className="size-4" />
+            JSON
+          </a>
+          <FileSearch className="ml-1 size-5 text-slate-500" />
+        </div>
       </div>
       <div className="mt-6 space-y-4">
         {events.map((event) => (
