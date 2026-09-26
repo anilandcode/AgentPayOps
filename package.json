@@ -10,7 +10,6 @@
     "evals": "tsx scripts/policy-evals.ts"
   },
   "dependencies": {
-    "@google/generative-ai": "^0.24.1",
     "@supabase/supabase-js": "^2.105.4",
     "@x402/core": "^2.12.0",
     "@x402/evm": "^2.12.0",

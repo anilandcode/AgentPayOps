@@ -452,9 +452,11 @@ export function AgentWorkflow({ onRunComplete }: AgentWorkflowProps) {
                   <Sparkles className="size-4 text-cyan-700" />
                   AI finance memo
                 </div>
-                <span className="rounded-full border border-cyan-200 bg-white px-2.5 py-1 text-xs font-semibold capitalize text-cyan-800">
-                  {financeMemo.source === "gemini" ? "Gemini" : "Fallback"} ·{" "}
-                  {financeMemo.riskLevel} risk
+                <span className="rounded-full border border-cyan-200 bg-white px-2.5 py-1 text-xs font-semibold text-cyan-800">
+                  {financeMemo.source === "deterministic-fallback"
+                    ? "Fallback"
+                    : `Command Code · ${financeMemo.source.slice("command-code:".length)}`}{" "}
+                  · {financeMemo.riskLevel} risk
                 </span>
               </div>
               <h3 className="mt-3 text-lg font-semibold tracking-tight text-cyan-950">

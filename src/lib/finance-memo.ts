@@ -14,7 +14,7 @@ export type FinanceMemoInput = {
 };
 
 export type FinanceMemo = {
-  source: "gemini" | "deterministic-fallback";
+  source: "deterministic-fallback" | `command-code:${string}`;
   headline: string;
   summary: string;
   riskLevel: "low" | "medium" | "high";

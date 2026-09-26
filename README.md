@@ -28,7 +28,7 @@ AgentPayOps demonstrates that control layer through one vertical workflow:
 - Invoice intake UI with sample invoices, uploaded invoice documents, extracted fields, risk findings, and required paid-data callouts
 - Interactive scenario runner for approved, escalated, and blocked agent payments
 - Live transaction and audit log updates when an agent scenario completes
-- AI finance memo route with Gemini support and deterministic fallback
+- AI finance memo route powered by Command Code (`stealth/space-bunny-alpha` with `xiaomi/mimo-v2.6-pro` and `meta/muse-spark-1.3-contributor` fallbacks) and deterministic fallback
 - Dockerfile and Docker Compose configuration for Vultr/Coolify deployment
 - Health endpoint at `/api/health`
 - Supabase/Postgres schema and optional persistence for agent runs, transactions, and audit events
@@ -40,7 +40,7 @@ AgentPayOps demonstrates that control layer through one vertical workflow:
 - Primary Vultr/Coolify demo URL: <http://st2bm9ob1tiu62tc8jatrwlk.149.28.34.93.sslip.io/>
 - Backup Vercel demo URL: <https://agent-pay-ops.vercel.app/>
 - Track fit: B2B FinOps & Compliance for autonomous agents using X402-style programmable payment controls.
-- Technology partners used: Vultr for the deployed VM/web backend and Gemini for finance reasoning and invoice extraction support.
+- Technology partners used: Vultr for the deployed VM/web backend and Command Code for finance reasoning and invoice extraction support.
 - Supabase is the system of record for completed runs, transactions, and audit events when the Supabase environment variables are configured.
 
 ## Architecture
@@ -49,10 +49,10 @@ AgentPayOps demonstrates that control layer through one vertical workflow:
 Browser
   -> Next.js UI on Vultr/Coolify
      -> /api/invoices/analyze for sample or pasted invoice text
-     -> /api/invoices/upload for TXT/CSV/JSON/XML plus Gemini-assisted PDF/image extraction
+     -> /api/invoices/upload for TXT/CSV/JSON/XML plus Command Code-assisted image extraction (Provider API vision)
      -> /api/payments/attempt for policy evaluation and payment decision
      -> /api/vendor-risk/report for X402-style 402 challenge and paid retry
-     -> /api/agent/reasoning for Gemini finance memo generation
+     -> /api/agent/reasoning for Command Code finance memo generation
      -> Supabase for transactions, audit events, and completed agent runs
 ```
 
@@ -86,12 +86,18 @@ alignment notes are in [`ROLE_ALIGNMENT.md`](./ROLE_ALIGNMENT.md).
 
 Copy `.env.example` to `.env.local` when you want live AI reasoning.
 
+Finance memos are generated through Command Code (see `src/lib/cmd-llm.ts`), which uses two transports in order:
+
+1. **`cmd` CLI** (primary, works on any machine where Command Code is installed and logged in — including the Go plan): `cmd -p ... --model stealth/space-bunny-alpha`
+2. **Provider API** (`https://api.commandcode.ai/provider/v1/chat/completions`, used automatically on deployments when `CMD_API_KEY` belongs to a plan with API access):
+
 ```bash
-GEMINI_API_KEY=your_key_here
-GEMINI_MODEL=gemini-2.5-flash
+CMD_LLM_MODE=auto
+CMD_API_KEY=***            # optional; enables HTTP + vision on deployments
+CMD_MODELS=stealth/space-bunny-alpha,xiaomi/mimo-v2.6-pro,meta/muse-spark-1.3-contributor
 ```
 
-If no Gemini key is present, the app still works and returns deterministic finance memos from the policy decision.
+If neither transport can answer, the app still works and returns deterministic finance memos from the policy decision.
 
 For persistent transactions and audit logs, run `supabase/schema.sql` in Supabase and set:
 

@@ -1,32 +1,32 @@
-import { GoogleGenerativeAI } from "@google/generative-ai";
 import {
   buildFallbackMemo,
   type FinanceMemo,
   type FinanceMemoInput,
 } from "@/lib/finance-memo";
+import { askCommandCode, extractJsonObject } from "@/lib/cmd-llm";
 
-function parseMemo(text: string, fallback: FinanceMemo): FinanceMemo {
-  try {
-    const parsed = JSON.parse(text) as Partial<FinanceMemo>;
+export const maxDuration = 90;
 
-    if (
-      parsed.headline &&
-      parsed.summary &&
-      parsed.riskLevel &&
-      parsed.nextAction &&
-      Array.isArray(parsed.evidence)
-    ) {
-      return {
-        source: "gemini",
-        headline: parsed.headline,
-        summary: parsed.summary,
-        riskLevel: parsed.riskLevel,
-        nextAction: parsed.nextAction,
-        evidence: parsed.evidence.filter((item): item is string => typeof item === "string"),
-      };
-    }
-  } catch {
-    return fallback;
+function parseMemo(text: string, fallback: FinanceMemo, model: string): FinanceMemo {
+  const parsed = extractJsonObject(text) as Partial<FinanceMemo> | null;
+
+  if (
+    parsed &&
+    parsed.headline &&
+    parsed.summary &&
+    parsed.riskLevel &&
+    parsed.nextAction &&
+    Array.isArray(parsed.evidence)
+  ) {
+    const risk = String(parsed.riskLevel).toLowerCase();
+    return {
+      source: `command-code:${model}`,
+      headline: String(parsed.headline),
+      summary: String(parsed.summary),
+      riskLevel: risk === "low" || risk === "high" ? risk : "medium",
+      nextAction: String(parsed.nextAction),
+      evidence: parsed.evidence.filter((item): item is string => typeof item === "string"),
+    };
   }
 
   return fallback;
@@ -62,25 +62,9 @@ export async function POST(request: Request) {
     checks: payload.checks,
   };
   const fallback = buildFallbackMemo(input);
-  const apiKey = process.env.GEMINI_API_KEY || process.env.GOOGLE_API_KEY;
 
-  if (!apiKey) {
-    return Response.json(fallback);
-  }
-
-  try {
-    const genAI = new GoogleGenerativeAI(apiKey);
-    const model = genAI.getGenerativeModel({
-      model: process.env.GEMINI_MODEL || "gemini-2.5-flash",
-      generationConfig: {
-        temperature: 0.2,
-        responseMimeType: "application/json",
-      },
-    });
-
-    const result = await model.generateContent(`
-You are a finance controls analyst explaining an autonomous AI agent payment decision.
-Return only valid JSON with these keys:
+  const prompt = `You are a finance controls analyst explaining an autonomous AI agent payment decision. Do not use any tools, do not read any files; answer directly from the input below.
+Return ONLY valid JSON (no markdown fences) with these keys:
 headline: short sentence
 summary: 1-2 sentences for a CFO
 riskLevel: one of low, medium, high
@@ -89,11 +73,13 @@ evidence: array of 3-5 short evidence strings
 
 Decision input:
 ${JSON.stringify(input, null, 2)}
-`);
-    const text = result.response.text();
+`;
 
-    return Response.json(parseMemo(text, fallback));
-  } catch {
+  const answer = await askCommandCode(prompt, "agent-reasoning");
+
+  if (!answer) {
     return Response.json(fallback);
   }
+
+  return Response.json(parseMemo(answer.text, fallback, answer.model));
 }

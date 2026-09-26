@@ -20,7 +20,7 @@ import {
 type InvoiceAnalyzeResponse = {
   analysis: InvoiceAnalysis;
   extractedFrom: string;
-  extractionSource?: "text" | "gemini" | "metadata-fallback";
+  extractionSource?: "text" | "command-code" | "metadata-fallback";
   fileName?: string;
 };
 

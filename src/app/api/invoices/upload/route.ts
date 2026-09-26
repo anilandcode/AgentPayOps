@@ -1,9 +1,10 @@
-import { GoogleGenerativeAI, type Part } from "@google/generative-ai";
-
 import {
   analyzeInvoiceText,
   buildUploadedFallbackAnalysis,
 } from "@/lib/invoice-analysis";
+import { askCommandCodeVision } from "@/lib/cmd-llm";
+
+export const maxDuration = 90;
 
 const MAX_UPLOAD_BYTES = 6 * 1024 * 1024;
 const TEXT_MIME_TYPES = new Set([
@@ -18,41 +19,27 @@ function isTextLike(file: File) {
   return TEXT_MIME_TYPES.has(file.type) || /\.(txt|csv|json|xml)$/i.test(file.name);
 }
 
-function isGeminiSupported(file: File) {
-  return file.type.startsWith("image/") || file.type === "application/pdf";
+function isImage(file: File) {
+  return file.type.startsWith("image/");
 }
 
-async function extractWithGemini(file: File) {
-  const apiKey = process.env.GEMINI_API_KEY || process.env.GOOGLE_API_KEY;
-
-  if (!apiKey || !isGeminiSupported(file)) {
+async function extractWithCommandCode(file: File) {
+  if (!isImage(file)) {
+    // PDF extraction needs the Provider API route with file support; the demo
+    // stays honest and routes PDFs to the metadata fallback for now.
     return null;
   }
 
-  const genAI = new GoogleGenerativeAI(apiKey);
-  const model = genAI.getGenerativeModel({
-    model: process.env.GEMINI_MODEL || "gemini-2.5-flash",
-    generationConfig: {
-      temperature: 0.1,
-    },
-  });
   const data = Buffer.from(await file.arrayBuffer()).toString("base64");
-  const parts: Part[] = [
-    {
-      text: `Extract invoice text from this document.
+  const dataUrl = `data:${file.type};base64,${data}`;
+  const answer = await askCommandCodeVision(
+    `Extract invoice text from this document.
 Return plain text only. Include these fields when visible: invoice id, vendor, amount, currency, due date, category, line items, and notes.`,
-    },
-    {
-      inlineData: {
-        data,
-        mimeType: file.type,
-      },
-    },
-  ];
-  const result = await model.generateContent(parts);
-  const text = result.response.text().trim();
+    dataUrl,
+    "invoice-upload",
+  );
 
-  return text.length > 0 ? text : null;
+  return answer ? answer.text.trim() || null : null;
 }
 
 export async function POST(request: Request) {
@@ -71,18 +58,18 @@ export async function POST(request: Request) {
   }
 
   let extractedText = "";
-  let extractionSource: "text" | "gemini" | "metadata-fallback" = "metadata-fallback";
+  let extractionSource: "text" | "command-code" | "metadata-fallback" = "metadata-fallback";
 
   if (isTextLike(upload)) {
     extractedText = await upload.text();
     extractionSource = "text";
   } else {
     try {
-      const geminiText = await extractWithGemini(upload);
+      const cmdText = await extractWithCommandCode(upload);
 
-      if (geminiText) {
-        extractedText = geminiText;
-        extractionSource = "gemini";
+      if (cmdText) {
+        extractedText = cmdText;
+        extractionSource = "command-code";
       }
     } catch {
       extractedText = "";

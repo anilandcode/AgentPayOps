@@ -62,7 +62,7 @@ export function buildUploadedFallbackAnalysis(fileName: string, mimeType: string
     riskScore: 42,
     recommendation: "pending",
     summary:
-      "Document was received, but structured extraction requires text content or Gemini multimodal extraction.",
+      "Document was received, but structured extraction requires text content or Command Code vision extraction (Provider API plan).",
     findings: [
       `Uploaded file type: ${mimeType || "unknown"}.`,
       "Manual review is required before an agent can issue payment.",
