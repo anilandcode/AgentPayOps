@@ -1,29 +1,62 @@
 # AgentPayOps Demo Script
 
-Use the Vultr URL as the primary demo URL:
+Primary demo URL:
 
 ```text
-http://st2bm9ob1tiu62tc8jatrwlk.149.28.34.93.sslip.io/
+https://agent-pay-ops.vercel.app/
 ```
 
-## 90-Second Walkthrough
+Before the demo:
 
-1. Open the dashboard and state the problem: autonomous agents will buy data, tools, and compute, but finance needs spend controls before agents can issue payments.
-2. In Invoice Intake, upload three files from `demo-files/`: `Invoice_Standard_Data.txt`, `Invoice_HighValue_Compute.txt`, and `Invoice_Blocked_Vendor.txt`. Point out extracted vendor, USD amount, normalized policy category, risk score, and decision.
-3. In the X402 Payment Simulation panel, explain that the vendor-risk endpoint returns `402 Payment Required` until the agent is allowed to pay.
-14|4. Run the approved vendor-risk scenario. Show the policy check, payment reference, vendor-risk report, Command Code memo, and new audit entry.
-5. Run the high-value cloud invoice scenario. Show that it escalates instead of paying automatically.
-6. Run the duplicate enrichment scenario. Show that persistence catches the duplicate or blocked-vendor pattern and stops the payment.
-7. Open the audit/transaction area and state that Supabase is the system of record for agent decisions, payment references, and reasoning.
-18|8. Close with deployment: the app is a production-style web agent deployed on Vultr, backed by Supabase, Command Code, and X402-ready payment controls.
+```bash
+npm run demo:reset   # restores the clean seed ledger with TX-9002 awaiting human approval
+```
+
+## 5-Minute Client Walkthrough
+
+1. **Open the dashboard.** State the problem: autonomous agents will buy data,
+   tools, and compute — finance needs controls before agents may issue payments.
+   Point at the header metrics (spend reviewed, blocked spend, savings,
+   pending approvals — live from the database, not hardcoded).
+2. **Invoice Intake.** Upload `demo-files/Invoice_Blocked_Vendor.txt` →
+   Command Code extracts fields, rules block the vendor. Upload a clean
+   invoice with pressure language ("new IBAN, don't call to verify, urgent")
+   and show the **Jev document gate** tightening an approved recommendation
+   to human review.
+3. **X402 panel.** The vendor-risk endpoint returns `402 Payment Required`
+   until policy allows the agent to pay — the machine-to-machine money path.
+4. **Live Agent Run — "Fraud review passes policy (Jev gate)".** Every
+   deterministic rule passes (allowlisted vendor, small amount, no duplicate),
+   but the packet is a business-email-compromise: lookalike domain, changed
+   wire instructions, manufactured urgency. Jev escalates at ~98% fraud
+   probability in ~1 second for a fraction of a cent. This is the beat that
+   sells the architecture.
+5. **Human Approval Queue.** The escalated payment is sitting in the queue
+   (plus TX-9002 from the seed). Add a note, press **Release payment** —
+   the transaction flips to `released`, a human actor appears in the audit
+   trail, and the header metrics update live. Rule: ML and agents can only
+   tighten; only a human releases funds.
+6. **Run the duplicate scenario twice.** The second run is blocked against
+   the first — proof Supabase is the system of record.
+7. **Payment Controls.** Edit the cloud approval threshold live (e.g. 10k →
+   4k), re-run the €12.6k scenario — decision changes with no redeploy.
+   Restore the threshold afterwards.
+8. **Audit export.** Hit **CSV / JSON** on the decision trail: the full
+   ledger, including who among the humans decided what. This is what
+   compliance signs off on.
+9. **Close with the stack:** deterministic policy floor → Jev (typesafe/jev)
+   System One gates that only tighten → Command Code LLM memos
+   (stealth/space-bunny-alpha chain) → X402-ready payment rails → Supabase
+   audit ledger. Cost meter under every run shows real token spend.
 
 ## Verification URLs
 
 ```bash
-curl http://st2bm9ob1tiu62tc8jatrwlk.149.28.34.93.sslip.io/api/health
-curl http://st2bm9ob1tiu62tc8jatrwlk.149.28.34.93.sslip.io/api/audit
-curl http://st2bm9ob1tiu62tc8jatrwlk.149.28.34.93.sslip.io/api/x402/status
-curl -i http://st2bm9ob1tiu62tc8jatrwlk.149.28.34.93.sslip.io/api/vendor-risk/report
+curl https://agent-pay-ops.vercel.app/api/health
+curl https://agent-pay-ops.vercel.app/api/audit
+curl https://agent-pay-ops.vercel.app/api/policies
+curl -i https://agent-pay-ops.vercel.app/api/vendor-risk/report
+curl "https://agent-pay-ops.vercel.app/api/audit/export?format=csv"
 ```
 
 ## Demo File Expectations
@@ -32,14 +65,24 @@ curl -i http://st2bm9ob1tiu62tc8jatrwlk.149.28.34.93.sslip.io/api/vendor-risk/re
 Invoice_Standard_Data.txt            -> approved
 Invoice_HighValue_Compute.txt        -> escalated
 Invoice_High_Limit_Cloud.txt.txt     -> escalated
-Invoice_Blocked_Vendor.txt           -> blocked
-Invoice_Duplicate_Enrichment.txt     -> blocked
+Invoice_Blocked_Vendor.txt           -> blocked (rules)
+Invoice_Duplicate_Enrichment.txt     -> blocked (duplicate)
+any invoice + fraud language         -> Jev tightens to escalated
+```
+
+## Regression Gates
+
+```bash
+npm run evals       # deterministic policy: accuracy 1.000, falseApproveRate 0.000
+npm run evals:jev   # Jev gate direction checks + degrade-to-null
 ```
 
 ## Submission Points
 
 - GitHub repository includes setup, Docker deployment, Supabase schema, and Vultr notes.
-- Vultr hosts the primary public demo URL.
-43|- Command Code generates finance reasoning when configured.
-- Supabase persists completed runs, transactions, and audit events.
+- Vercel is the primary public demo URL; Vultr/Docker path documented in `docs/deployment/vultr.md`.
+- Command Code generates finance reasoning and invoice vision extraction when configured.
+- Jev (typesafe/jev) gates rule-approved payments/invoices and can only escalate.
+- Humans release or cancel escalated payments through the approval queue; every decision lands in the audit ledger with actor type.
+- Supabase persists runs, transactions, audit events, and editable policies.
 - X402 is demo-safe by default and can be switched to real settlement with environment variables.

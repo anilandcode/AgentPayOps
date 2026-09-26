@@ -159,11 +159,14 @@ Open `http://localhost:3000`.
 ```bash
 npm run lint
 npm run build
+npm run evals       # deterministic policy regression (accuracy 1.000, falseApproveRate 0.000)
+npm run evals:jev   # Jev gate direction regression + degrade-to-null check
+npm run demo:reset  # restore clean seed ledger before a client demo
 ```
 
 ## Deploy
 
-Vercel is useful for quick previews, but the final Vultr award submission should run on a Vultr VM.
+Vercel is the primary public demo (https://agent-pay-ops.vercel.app). A Vultr/Docker path is supported for self-hosting.
 
 Docker build:
 
