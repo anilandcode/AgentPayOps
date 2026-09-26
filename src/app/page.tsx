@@ -8,17 +8,16 @@ import {
   LockKeyhole,
   ReceiptText,
   ShieldCheck,
-  SlidersHorizontal,
   WalletCards,
   XCircle,
 } from "lucide-react";
 import type { ElementType } from "react";
 import { InvoiceIntake } from "@/components/invoice-intake";
+import { PolicyControls } from "@/components/policy-controls";
 import { LiveOperationsCenter } from "@/components/live-operations-center";
 import {
   computeDashboardStats,
   invoices,
-  policies,
   type Decision,
 } from "@/lib/sample-data";
 import { getOperationsSnapshot } from "@/lib/persistence";
@@ -202,57 +201,6 @@ function InvoiceReview() {
             the invoice, and blocks repeat purchases against the same vendor.
           </p>
         </div>
-      </div>
-    </section>
-  );
-}
-
-function PolicyControls() {
-  return (
-    <section className="rounded-lg border border-slate-200 bg-white p-5 shadow-sm">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <div>
-          <p className="text-sm font-semibold uppercase tracking-wide text-slate-500">
-            Payment Controls
-          </p>
-          <h2 className="mt-2 text-2xl font-semibold tracking-tight text-slate-950">
-            Finance policies for autonomous agents
-          </h2>
-        </div>
-        <SlidersHorizontal className="size-5 text-slate-500" />
-      </div>
-      <div className="mt-5 grid gap-4 lg:grid-cols-3">
-        {policies.map((policy) => (
-          <article
-            className="rounded-lg border border-slate-200 bg-slate-50 p-4"
-            key={policy.id}
-          >
-            <div className="flex items-start justify-between gap-3">
-              <h3 className="font-semibold text-slate-950">{policy.name}</h3>
-              <span className="rounded-full bg-emerald-100 px-2 py-1 text-xs font-semibold text-emerald-700">
-                On
-              </span>
-            </div>
-            <dl className="mt-4 space-y-3 text-sm">
-              <div className="flex justify-between gap-4">
-                <dt className="text-slate-500">Category</dt>
-                <dd className="font-medium text-slate-700">{policy.category}</dd>
-              </div>
-              <div className="flex justify-between gap-4">
-                <dt className="text-slate-500">Max amount</dt>
-                <dd className="font-medium text-slate-700">
-                  {currency.format(policy.maxAmount)}
-                </dd>
-              </div>
-              <div className="flex justify-between gap-4">
-                <dt className="text-slate-500">Approval above</dt>
-                <dd className="font-medium text-slate-700">
-                  {currency.format(policy.approvalRequiredAbove)}
-                </dd>
-              </div>
-            </dl>
-          </article>
-        ))}
       </div>
     </section>
   );

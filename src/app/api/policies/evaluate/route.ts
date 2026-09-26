@@ -1,4 +1,5 @@
 import { evaluatePayment, type PaymentRequest } from "@/lib/policy-engine";
+import { getActivePolicies } from "@/lib/persistence";
 
 export async function POST(request: Request) {
   const payload = (await request.json()) as Partial<PaymentRequest>;
@@ -23,6 +24,7 @@ export async function POST(request: Request) {
       category: payload.category,
       amount: payload.amount,
       invoiceId: payload.invoiceId,
+      policySet: await getActivePolicies(),
     }),
   );
 }

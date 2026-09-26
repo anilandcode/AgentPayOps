@@ -1,10 +1,12 @@
 import type { FinanceMemo } from "./finance-memo";
 import {
   auditEvents,
+  policies,
   transactions,
   type AuditEvent,
   type Decision,
   type DemoScenario,
+  type Policy,
   type Transaction,
 } from "./sample-data";
 import { createServerSupabaseClient } from "./supabase-server";
@@ -375,4 +377,92 @@ export async function listPendingApprovals() {
   return snapshot.source === "sample"
     ? pending.filter((t) => !memoryLedger.has(t.id))
     : pending;
+}
+
+/* ------------------------------------------------------------------ */
+/* Editable payment controls — Supabase `policies` table, static seed  */
+/* as fallback so the demo works identically without a database.       */
+/* ------------------------------------------------------------------ */
+
+type PolicyRow = {
+  id: string;
+  name: string;
+  category: string;
+  max_amount: number;
+  approval_required_above: number;
+  allowed_vendors: string[];
+  blocked_vendors: string[];
+  enabled: boolean;
+};
+
+function mapPolicyRow(row: PolicyRow): Policy {
+  return {
+    id: row.id,
+    name: row.name,
+    category: row.category,
+    maxAmount: Number(row.max_amount),
+    approvalRequiredAbove: Number(row.approval_required_above),
+    allowedVendors: Array.isArray(row.allowed_vendors) ? row.allowed_vendors : [],
+    blockedVendors: Array.isArray(row.blocked_vendors) ? row.blocked_vendors : [],
+    enabled: Boolean(row.enabled),
+  };
+}
+
+export async function getActivePolicies(): Promise<Policy[]> {
+  const supabase = createServerSupabaseClient();
+
+  if (!supabase) {
+    return policies;
+  }
+
+  const { data, error } = await supabase.from("policies").select("*");
+
+  if (error || !data || data.length === 0) {
+    return policies;
+  }
+
+  return (data as PolicyRow[]).map(mapPolicyRow);
+}
+
+export async function updatePolicy(
+  id: string,
+  patchBody: Partial<Omit<Policy, "id">>,
+) {
+  const supabase = createServerSupabaseClient();
+
+  const row: Record<string, unknown> = {};
+  if (patchBody.name !== undefined) row.name = patchBody.name;
+  if (patchBody.category !== undefined) row.category = patchBody.category;
+  if (patchBody.maxAmount !== undefined) row.max_amount = patchBody.maxAmount;
+  if (patchBody.approvalRequiredAbove !== undefined)
+    row.approval_required_above = patchBody.approvalRequiredAbove;
+  if (patchBody.allowedVendors !== undefined)
+    row.allowed_vendors = patchBody.allowedVendors;
+  if (patchBody.blockedVendors !== undefined)
+    row.blocked_vendors = patchBody.blockedVendors;
+  if (patchBody.enabled !== undefined) row.enabled = patchBody.enabled;
+
+  if (Object.keys(row).length === 0) {
+    return { source: "noop" as const };
+  }
+
+  if (!supabase) {
+    return { source: "memory" as const, error: "No database configured." };
+  }
+
+  const { data, error } = await supabase
+    .from("policies")
+    .update(row)
+    .eq("id", id)
+    .select("*");
+
+  if (error) {
+    return { source: "supabase" as const, error: error.message };
+  }
+
+  if (!data || data.length === 0) {
+    return { source: "supabase" as const, error: `Policy ${id} not found.` };
+  }
+
+  return { source: "supabase" as const, policy: mapPolicyRow(data[0] as PolicyRow) };
 }

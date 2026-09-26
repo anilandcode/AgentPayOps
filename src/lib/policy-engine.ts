@@ -1,4 +1,4 @@
-import { policies, transactions, type Decision, type Transaction } from "./sample-data";
+import { policies, transactions, type Decision, type Policy, type Transaction } from "./sample-data";
 
 export type PaymentRequest = {
   vendorName: string;
@@ -6,6 +6,7 @@ export type PaymentRequest = {
   category: string;
   invoiceId?: string;
   existingTransactions?: Transaction[];
+  policySet?: Policy[];
 };
 
 export type PolicyEvaluation = {
@@ -19,7 +20,8 @@ export type PolicyEvaluation = {
 };
 
 export function evaluatePayment(request: PaymentRequest): PolicyEvaluation {
-  const policy = policies.find(
+  const activePolicies = request.policySet ?? policies;
+  const policy = activePolicies.find(
     (candidate) => candidate.enabled && candidate.category === request.category,
   );
 

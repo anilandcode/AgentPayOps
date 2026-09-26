@@ -1,5 +1,8 @@
 import { evaluatePayment } from "@/lib/policy-engine";
-import { getTransactionsForPolicyEvaluation } from "@/lib/persistence";
+import {
+  getActivePolicies,
+  getTransactionsForPolicyEvaluation,
+} from "@/lib/persistence";
 import { assessPaymentRisk, type PaymentRiskAssessment } from "@/lib/jev-risk";
 
 export const maxDuration = 30;
@@ -23,13 +26,17 @@ export async function POST(request: Request) {
     );
   }
 
-  const existingTransactions = await getTransactionsForPolicyEvaluation();
+  const [existingTransactions, activePolicies] = await Promise.all([
+    getTransactionsForPolicyEvaluation(),
+    getActivePolicies(),
+  ]);
   const evaluation = evaluatePayment({
     vendorName: payload.vendorName,
     category: payload.category,
     amount: payload.amount,
     invoiceId: payload.invoiceId,
     existingTransactions,
+    policySet: activePolicies,
   });
 
   // Jev System One gate: rules are the floor. Jev may only tighten an
