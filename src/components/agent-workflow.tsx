@@ -462,7 +462,7 @@ export function AgentWorkflow({ onRunComplete }: AgentWorkflowProps) {
                   Jev System One fraud review
                 </div>
                 <span className="rounded-full border border-violet-200 bg-white px-2.5 py-1 text-xs font-semibold text-violet-800">
-                  {paymentResult.jev.riskLevel} risk · {paymentResult.jev.latencyMs} ms
+                  {paymentResult.jev.riskLevel} · {paymentResult.jev.latencyMs} ms
                 </span>
               </div>
               <div className="mt-3 grid gap-2 sm:grid-cols-3">

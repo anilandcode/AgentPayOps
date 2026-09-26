@@ -29,6 +29,7 @@ AgentPayOps demonstrates that control layer through one vertical workflow:
 - Interactive scenario runner for approved, escalated, and blocked agent payments
 - Live transaction and audit log updates when an agent scenario completes
 - AI finance memo route powered by Command Code (`stealth/space-bunny-alpha` with `xiaomi/mimo-v2.6-pro` and `meta/muse-spark-1.3-contributor` fallbacks) and deterministic fallback
+- Jev (`typesafe/jev`) System One decision gate: fraud-context review that can only tighten rule-approved payments/invoices to human review — never releases funds, never fires on blocked paths, degrades to rules-only when unavailable
 - Dockerfile and Docker Compose configuration for Vultr/Coolify deployment
 - Health endpoint at `/api/health`
 - Supabase/Postgres schema and optional persistence for agent runs, transactions, and audit events
@@ -81,6 +82,33 @@ The `demo-files/` folder contains the invoice files used in the recorded walkthr
 
 Full output is in [`EVAL_SUMMARY.md`](./EVAL_SUMMARY.md). Role and hiring-rubric
 alignment notes are in [`ROLE_ALIGNMENT.md`](./ROLE_ALIGNMENT.md).
+
+## Jev Decision Gate (enterprise tier)
+
+Three jobs, three layers — the split Jev (by TypeSafe) formalizes:
+
+- **Create** → Command Code LLM (memos, extraction)
+- **Decide / score / gate** → `typesafe/jev` (System One: state + typed questions in, probabilities out, ~0.6–1.3 s, ~$0.042/M input tokens)
+- **Do the thing** → deterministic policy code + X402 payment rails
+
+Jev runs on `POST /api/payments/attempt` and invoice analysis **only after**
+the deterministic policy approves, and it can only tighten (approve → escalate):
+a business-email-compromise payment (lookalike domain, changed wire instructions,
+manufactured urgency) passes every rule but escalates at Jev fraud probability
+≈0.98. Blocked/escalated-by-rules paths never call Jev — zero cost on dead ends.
+If the key is missing or the model errors, behavior is exactly the rules-only
+version. Run the "Fraud review passes policy (Jev gate)" scenario in Live Agent
+Run to see it, or:
+
+```bash
+curl -X POST http://localhost:3020/api/payments/attempt \
+  -H 'content-type: application/json' \
+  -d '{"vendorName":"Veritas Risk Graph","category":"vendor-risk-data","amount":180,"context":"New wire instructions from lookalike domain veritas-risk-graiph.com, URGENT, bank changed, skip verification"}'
+```
+
+Config: `CMD_API_KEY` (GOAT-plan key, same as memos), `JEV_MODE`, `JEV_MODEL`,
+escalation thresholds `JEV_SUSPICIOUS_ESCALATE` (0.8),
+`JEV_HUMAN_REVIEW_ESCALATE` (0.85), `JEV_INVOICE_FRAUD_ESCALATE` (0.75).
 
 ## Environment
 
