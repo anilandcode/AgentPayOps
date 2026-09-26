@@ -274,7 +274,7 @@ function ApprovalQueue({
   );
 
   return (
-    <section className="rounded-lg border border-amber-200 bg-white shadow-sm">
+    <section className="rounded-lg border border-amber-200 bg-white shadow-sm" id="approval-queue">
       <div className="flex flex-wrap items-center justify-between gap-3 border-b border-amber-100 p-5">
         <div className="flex items-center gap-3">
           <span className="flex size-9 items-center justify-center rounded-lg bg-amber-100 text-amber-700">

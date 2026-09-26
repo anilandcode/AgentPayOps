@@ -5,6 +5,7 @@ import {
   CheckCircle2,
   CircleDollarSign,
   Gauge,
+  Layers,
   LockKeyhole,
   ReceiptText,
   ShieldCheck,
@@ -12,6 +13,7 @@ import {
   XCircle,
 } from "lucide-react";
 import type { ElementType } from "react";
+import Link from "next/link";
 import { InvoiceIntake } from "@/components/invoice-intake";
 import { PolicyControls } from "@/components/policy-controls";
 import { LiveOperationsCenter } from "@/components/live-operations-center";
@@ -232,9 +234,18 @@ export default async function Home() {
               challenges, and keep an audit trail finance teams can trust.
             </p>
           </div>
-          <div className="flex items-center gap-2 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm font-medium text-slate-700">
-            <Bot className="size-4" />
-            Ops Invoice Agent active
+          <div className="flex items-center gap-2">
+            <Link
+              className="inline-flex items-center gap-2 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm font-medium text-slate-700 transition hover:bg-slate-100"
+              href="/architecture"
+            >
+              <Layers className="size-4" />
+              Architecture & live demo
+            </Link>
+            <div className="flex items-center gap-2 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm font-medium text-slate-700">
+              <Bot className="size-4" />
+              Ops Invoice Agent active
+            </div>
           </div>
         </header>
 
