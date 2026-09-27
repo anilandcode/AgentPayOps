@@ -1,30 +1,26 @@
-import { analyzeInvoiceText, inferSampleId } from "@/lib/invoice-analysis";
-import { invoiceSamples } from "@/lib/sample-data";
+import { analyzeInvoiceText } from "@/lib/invoice-analysis";
 import { assessInvoiceRisk } from "@/lib/jev-risk";
+import { withinDemoLimit } from "@/lib/demo-rate-limit";
 
 export const maxDuration = 30;
 
 export async function POST(request: Request) {
+  if (!withinDemoLimit(request, "invoice-analyze", 20)) return Response.json({ error: "Analysis limit reached. Try again in a minute." }, { status: 429 });
   const payload = (await request.json()) as {
     sampleId?: string;
     invoiceText?: string;
   };
 
-  const sampleId =
-    payload.sampleId ||
-    inferSampleId(payload.invoiceText || invoiceSamples[0].invoiceText);
-  const invoiceText =
-    payload.invoiceText ||
-    invoiceSamples.find((sample) => sample.id === sampleId)?.invoiceText ||
-    invoiceSamples[0].invoiceText;
-  const analysis = analyzeInvoiceText(invoiceText, payload.sampleId);
+  if (typeof payload.invoiceText !== "string" || !payload.invoiceText.trim() || payload.invoiceText.length > 20000) return Response.json({error:"Paste invoice text (up to 20,000 characters)."},{status:400});
+  const invoiceText=payload.invoiceText;
+  const analysis=analyzeInvoiceText(invoiceText,payload.sampleId);
 
   if (!analysis) {
     return Response.json(
       {
-        error: "Unknown invoice sample.",
+        error: "Could not extract a vendor and valid amount. Check the invoice text.",
       },
-      { status: 404 },
+      { status: 422 },
     );
   }
 
@@ -64,5 +60,6 @@ export async function POST(request: Request) {
     extractedFrom: invoiceText,
     extractionSource: "text",
     jev: jevView,
+    aiState: analysis.recommendation === "approved" || jevView ? (jevView ? "completed" : "unavailable") : "skipped by policy",
   });
 }

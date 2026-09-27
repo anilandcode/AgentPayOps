@@ -21,9 +21,14 @@ function toCsv(rows: Record<string, unknown>[]): string {
 export async function GET(request: Request) {
   const url = new URL(request.url);
   const format = url.searchParams.get("format") === "json" ? "json" : "csv";
-  const snapshot = await getOperationsSnapshot();
+  let snapshot: Awaited<ReturnType<typeof getOperationsSnapshot>>;
+  try { snapshot = await getOperationsSnapshot(); } catch(error) { return Response.json({error:error instanceof Error?error.message:"Audit unavailable."},{status:503}); }
+  const kind=url.searchParams.get("kind") || "all";
+  const search=(url.searchParams.get("search") || "").slice(0,100).toLowerCase();
+  const status=url.searchParams.get("status") || "all";
+  const matches=(row:unknown,decision:string)=> (status==="all" || status===decision) && JSON.stringify(row).toLowerCase().includes(search);
 
-  const auditRows = snapshot.auditEvents.map((event) => ({
+  const auditRows = (kind === "transactions" ? [] : snapshot.auditEvents.filter(event=>matches(event,event.decision))).map((event) => ({
     id: event.id,
     timestamp: event.createdAt,
     actor_type: event.actorType,
@@ -34,7 +39,7 @@ export async function GET(request: Request) {
     reasoning: event.reasoning.replace(/\s+/g, " ").trim(),
   }));
 
-  const transactionRows = snapshot.transactions.map((transaction) => ({
+  const transactionRows = (kind === "events" ? [] : snapshot.transactions.filter(transaction=>matches(transaction,transaction.status))).map((transaction) => ({
     id: transaction.id,
     invoice_id: transaction.invoiceId,
     agent_name: transaction.agentName,

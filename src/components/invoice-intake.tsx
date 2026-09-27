@@ -11,6 +11,8 @@ import {
   SearchCheck,
 } from "lucide-react";
 import { useState } from "react";
+import Link from "next/link";
+import { useDemoData } from "@/components/workspace-shell";
 import {
   invoiceSamples,
   type Decision,
@@ -20,7 +22,7 @@ import {
 type InvoiceAnalyzeResponse = {
   analysis: InvoiceAnalysis;
   extractedFrom: string;
-  extractionSource?: "text" | "command-code" | "metadata-fallback";
+  extractionSource?: "text" | "command-code";
   fileName?: string;
 };
 
@@ -40,8 +42,9 @@ function formatMoney(amount: number, currencyCode: InvoiceAnalysis["currency"]) 
 }
 
 export function InvoiceIntake() {
+  const { setInvoiceDraft } = useDemoData();
   const [selectedSampleId, setSelectedSampleId] = useState(invoiceSamples[0].id);
-  const [invoiceText, setInvoiceText] = useState(invoiceSamples[0].invoiceText);
+  const [invoiceText, setInvoiceText] = useState(() => { try { return sessionStorage.getItem("agentpayops:invoice-text") || invoiceSamples[0].invoiceText; } catch { return invoiceSamples[0].invoiceText; } });
   const [analysis, setAnalysis] = useState<InvoiceAnalysis | null>(null);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [uploadedFileName, setUploadedFileName] = useState<string | null>(null);
@@ -57,6 +60,8 @@ export function InvoiceIntake() {
 
     setSelectedSampleId(sample.id);
     setInvoiceText(sample.invoiceText);
+    sessionStorage.setItem("agentpayops:invoice-text",sample.invoiceText);
+    setInvoiceDraft("");
     setAnalysis(null);
     setUploadedFileName(null);
     setExtractionSource(null);
@@ -78,10 +83,12 @@ export function InvoiceIntake() {
         }),
       });
       const body = (await response.json()) as InvoiceAnalyzeResponse;
+      if (!response.ok || !body.analysis) throw new Error((body as InvoiceAnalyzeResponse & {error?:string}).error || "Invoice analysis failed.");
       setAnalysis(body.analysis);
+      setInvoiceDraft(JSON.stringify(body.analysis));
       setExtractionSource(body.extractionSource ?? "text");
       setUploadError(null);
-    } finally {
+    } catch (error) { setUploadError(error instanceof Error ? error.message : "Invoice analysis failed."); } finally {
       setIsAnalyzing(false);
     }
   }
@@ -113,8 +120,9 @@ export function InvoiceIntake() {
       setSelectedSampleId("uploaded");
       setInvoiceText(body.extractedFrom);
       setAnalysis(body.analysis);
+      setInvoiceDraft(JSON.stringify(body.analysis));
       setUploadedFileName(body.fileName ?? file.name);
-      setExtractionSource(body.extractionSource ?? "metadata-fallback");
+      setExtractionSource(body.extractionSource ?? null);
     } catch (error) {
       setUploadError(error instanceof Error ? error.message : "Invoice upload failed.");
     } finally {
@@ -182,16 +190,17 @@ export function InvoiceIntake() {
                 Choose file
               </span>
               <input
-                accept=".txt,.csv,.json,.xml,.pdf,image/*"
+                accept=".txt,.csv,.json,.xml,image/jpeg,image/png,image/webp"
                 className="sr-only"
                 disabled={isAnalyzing}
                 onChange={(event) => uploadInvoice(event.target.files?.[0])}
                 type="file"
               />
             </label>
+            <p className="mt-3 text-xs text-slate-600">Shared demo: use sample documents. Raw uploads are processed in memory and are not retained. TXT, CSV, JSON, XML, JPEG, PNG, WebP · 6 MB maximum. PDF is unsupported.</p>
             {uploadedFileName ? (
               <p className="mt-3 text-sm text-slate-600">
-                {uploadedFileName} · {extractionSource ?? "metadata-fallback"}
+                {uploadedFileName} · {extractionSource === "command-code" ? "image text extracted by Command Code" : "text extracted"}
               </p>
             ) : null}
             {uploadError ? (
@@ -206,7 +215,7 @@ export function InvoiceIntake() {
             </span>
             <textarea
               className="min-h-72 w-full resize-y rounded-lg border border-slate-200 bg-slate-50 p-4 font-mono text-sm leading-6 text-slate-700 outline-none transition focus:border-slate-400 focus:bg-white"
-              onChange={(event) => setInvoiceText(event.target.value)}
+              onChange={(event) => { setInvoiceText(event.target.value); sessionStorage.setItem("agentpayops:invoice-text",event.target.value); setSelectedSampleId("edited"); }}
               value={invoiceText}
             />
           </label>
@@ -231,10 +240,11 @@ export function InvoiceIntake() {
                 <span
                   className={`inline-flex items-center rounded-full border px-2.5 py-1 text-xs font-semibold capitalize ${decisionStyles[analysis.recommendation]}`}
                 >
-                  {analysis.recommendation}
+                  Intake suggestion: {analysis.recommendation}
                 </span>
               </div>
 
+              <div className="mt-5 grid gap-3 sm:grid-cols-2">{([ ["invoiceId","Invoice ID"],["vendorName","Vendor"],["amount","Amount"],["category","Category"] ] as const).map(([key,label])=><label key={key} className="field-label">{label}<input className="w-full rounded-lg border border-slate-300 bg-white p-3" type={key==="amount"?"number":"text"} min={key==="amount"?"0.01":undefined} max={key==="amount"?"50000":undefined} value={analysis[key]} onChange={event=>{const value=key==="amount"?Number(event.target.value):event.target.value;const next={...analysis,[key]:value};setAnalysis(next);setInvoiceDraft(JSON.stringify(next));}}/></label>)}</div><p className="muted-note">Confirm or edit these fields before evaluation. This suggestion is based on document content; the server makes the final policy decision. The evaluated amount is the invoice total above, separate from any paid data report.</p><Link className="button-primary" href="/runs">Evaluate this invoice →</Link>
               <div className="mt-5 grid gap-3 sm:grid-cols-3">
                 <div className="rounded-lg border border-slate-200 bg-white p-3">
                   <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">

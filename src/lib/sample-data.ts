@@ -27,6 +27,7 @@ export type Policy = {
   allowedVendors: string[];
   blockedVendors: string[];
   enabled: boolean;
+  version?: number;
 };
 
 export type Transaction = {

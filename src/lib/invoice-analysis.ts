@@ -33,17 +33,13 @@ export function analyzeInvoiceText(
   invoiceText: string,
   sampleId?: string,
   sourceName = "",
-): InvoiceAnalysis {
-  if (sampleId && invoiceAnalyses[sampleId]) {
+): InvoiceAnalysis | null {
+  if (sampleId && invoiceAnalyses[sampleId] && invoiceSamples.find(item => item.id === sampleId)?.invoiceText === invoiceText) {
     return invoiceAnalyses[sampleId];
   }
-
-  const inferredSampleId = inferSampleId(invoiceText || invoiceSamples[0].invoiceText);
   const parsed = parseInvoiceFields(invoiceText, sourceName);
 
-  if (!parsed) {
-    return invoiceAnalyses[inferredSampleId];
-  }
+  if (!parsed) return null;
 
   return buildAnalysis(parsed);
 }
@@ -80,9 +76,7 @@ export function buildUploadedFallbackAnalysis(fileName: string, mimeType: string
 function parseInvoiceFields(invoiceText: string, sourceName = ""): ParsedInvoiceFields | null {
   const normalized = invoiceText.trim();
 
-  if (!normalized) {
-    return null;
-  }
+  if (!normalized || normalized.length > 20000) return null;
 
   const invoiceId =
     matchFirst(normalized, /invoice\s+number\s*:\s*([A-Z0-9-]+(?:-[\w-]+)?)/i) ||
@@ -97,6 +91,7 @@ function parseInvoiceFields(invoiceText: string, sourceName = ""): ParsedInvoice
     /(?:amount|total due|total|balance due)\s*:\s*(EUR|USD|€|\$)?\s*([\d,]+(?:\.\d+)?)/i,
   );
   const amount = amountMatch ? Number(amountMatch[2].replace(/,/g, "")) : 0;
+  if (!amountMatch || !Number.isFinite(amount) || amount <= 0 || amount > 50000 || !/(?:vendor|supplier)\s*:/i.test(normalized)) return null;
   const currency = inferCurrency(normalized, amountMatch?.[1]);
   const dueDate =
     matchFirst(normalized, /due\s*:\s*([0-9]{4}-[0-9]{2}-[0-9]{2})/i) ||
