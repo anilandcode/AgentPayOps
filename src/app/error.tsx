@@ -1,0 +1,1 @@
+"use client";export default function Error({reset}:{reset:()=>void}){return <div className="solid-panel" role="alert"><h1 className="panel-title">This page could not load</h1><p className="panel-copy">The shared demo is still available. Try this page again.</p><button className="button-primary" onClick={reset}>Retry</button></div>}

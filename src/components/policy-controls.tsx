@@ -31,7 +31,7 @@ export function PolicyControls() {
   useEffect(() => {
     fetch("/api/policies")
       .then((response) => response.json())
-      .then((body: { policies: Policy[] }) => setPolicies(body.policies))
+      .then((body: { policies?: Policy[]; error?: string }) => { if (!body.policies) throw new Error(body.error || "Policies unavailable."); setPolicies(body.policies); })
       .catch(() => setError("Could not load policies."));
   }, []);
 
@@ -45,6 +45,7 @@ export function PolicyControls() {
         headers: { "content-type": "application/json" },
         body: JSON.stringify({
           id: draft.id,
+          expectedVersion: draft.version,
           patch: {
             name: draft.name,
             maxAmount: draft.maxAmount,
@@ -65,6 +66,7 @@ export function PolicyControls() {
       );
       setEditing(null);
       setDraft(null);
+      window.dispatchEvent(new Event("agentpayops:updated"));
     } catch {
       setError("Could not reach the policy service.");
     } finally {
@@ -78,10 +80,11 @@ export function PolicyControls() {
       const response = await fetch("/api/policies", {
         method: "PATCH",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ id: policy.id, patch: { enabled: !policy.enabled } }),
+        body: JSON.stringify({ id: policy.id, expectedVersion: policy.version, patch: { enabled: !policy.enabled } }),
       });
       const body = await response.json();
       if (response.ok && body.policy) {
+        window.dispatchEvent(new Event("agentpayops:updated"));
         setPolicies((rows) =>
           (rows ?? []).map((row) => (row.id === policy.id ? body.policy : row)),
         );
@@ -223,6 +226,7 @@ export function PolicyControls() {
                 </div>
                 {isEditing ? (
                   <>
+                    {draft && JSON.stringify(draft) !== JSON.stringify(policy) ? <span className="status-pill escalated">Unsaved changes</span> : null}
                     <div>
                       <dt className="mb-1 text-slate-500">Allowed vendors</dt>
                       <dd>
@@ -301,7 +305,7 @@ export function PolicyControls() {
           );
         })}
         {rows.length === 0 ? (
-          <p className="text-sm text-slate-500">Loading policies…</p>
+          <p className="text-sm text-slate-500">{error ? "Policies unavailable. Retry by reloading the page." : "Loading policies…"}</p>
         ) : null}
       </div>
     </section>

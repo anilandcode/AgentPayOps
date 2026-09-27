@@ -1,0 +1,3 @@
+import {validPresenterSecret,startPresenterSession,hasPresenterSession} from "@/lib/presenter-session";
+export async function GET(){return Response.json({authenticated:await hasPresenterSession()},{headers:{"cache-control":"no-store"}})}
+export async function POST(request:Request){let body:{secret?:string};try{body=await request.json()}catch{return Response.json({error:"Invalid request."},{status:400})}if(!body.secret||!validPresenterSecret(body.secret))return Response.json({error:"Presenter credential is invalid or reset is not configured."},{status:403});await startPresenterSession();return Response.json({authenticated:true})}

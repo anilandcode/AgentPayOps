@@ -1,6 +1,5 @@
 import {
   analyzeInvoiceText,
-  buildUploadedFallbackAnalysis,
 } from "@/lib/invoice-analysis";
 import { askCommandCodeVision } from "@/lib/cmd-llm";
 import { assessInvoiceRisk } from "@/lib/jev-risk";
@@ -21,7 +20,7 @@ function isTextLike(file: File) {
 }
 
 function isImage(file: File) {
-  return file.type.startsWith("image/");
+  return ["image/jpeg","image/png","image/webp"].includes(file.type);
 }
 
 async function extractWithCommandCode(file: File) {
@@ -51,6 +50,8 @@ export async function POST(request: Request) {
     return Response.json({ error: "invoice file is required." }, { status: 400 });
   }
 
+  if (!isTextLike(upload) && !isImage(upload)) return Response.json({error:"Supported files: TXT, CSV, JSON, XML, JPEG, PNG, or WebP. PDF is not supported."},{status:415});
+  if (upload.size === 0) return Response.json({error:"The file is empty."},{status:400});
   if (upload.size > MAX_UPLOAD_BYTES) {
     return Response.json(
       { error: "invoice file must be 6 MB or smaller." },
@@ -59,7 +60,7 @@ export async function POST(request: Request) {
   }
 
   let extractedText = "";
-  let extractionSource: "text" | "command-code" | "metadata-fallback" = "metadata-fallback";
+  let extractionSource: "text" | "command-code" = "text";
 
   if (isTextLike(upload)) {
     extractedText = await upload.text();
@@ -77,9 +78,9 @@ export async function POST(request: Request) {
     }
   }
 
-  const analysis = extractedText
-    ? analyzeInvoiceText(extractedText, undefined, upload.name)
-    : buildUploadedFallbackAnalysis(upload.name, upload.type);
+  if (!extractedText.trim()) return Response.json({error:"Could not extract invoice text. Try a clear JPEG, PNG, WebP, or paste the text instead.",extractionSource:"unavailable"},{status:422});
+  const analysis = analyzeInvoiceText(extractedText, undefined, upload.name);
+  if (!analysis) return Response.json({error:"Could not find a vendor and valid amount in this file. Check the document or paste its text."},{status:422});
 
   // Jev gate on freshly-extracted documents: rules floor, Jev tightens only.
   let jevView: { fraudSignals: number; severity: string; riskScore: number } | null = null;
@@ -114,6 +115,7 @@ export async function POST(request: Request) {
 
   return Response.json({
     jev: jevView,
+    aiState: analysis.recommendation === "approved" || jevView ? (jevView ? "completed" : "unavailable") : "skipped by policy",
     analysis,
     extractedFrom:
       extractedText ||

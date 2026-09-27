@@ -11,7 +11,7 @@ export async function POST(request: Request) {
   };
 
   if (
-    !payload.transactionId ||
+    !payload.transactionId || payload.transactionId.length > 100 || (payload.note?.length ?? 0) > 500 ||
     (payload.decision !== "released" && payload.decision !== "cancelled")
   ) {
     return Response.json(
@@ -23,12 +23,12 @@ export async function POST(request: Request) {
   const result = await recordHumanDecision({
     transactionId: payload.transactionId,
     decision: payload.decision,
-    actorName: payload.actorName?.trim() || "Finance Controller",
+    actorName: "Demo reviewer",
     note: payload.note?.trim() || undefined,
   });
 
   if ("error" in result && result.error) {
-    return Response.json({ error: result.error }, { status: 409 });
+    return Response.json({ error: result.error, source: result.source }, { status: result.source === "unavailable" ? 503 : 409 });
   }
 
   return Response.json(result);

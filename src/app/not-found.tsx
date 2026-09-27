@@ -1,0 +1,1 @@
+import Link from "next/link";export default function NotFound(){return <div className="solid-panel"><h1 className="panel-title">Page not found</h1><p className="panel-copy">That workspace page is not available.</p><Link className="button-primary" href="/">Return to Overview</Link></div>}

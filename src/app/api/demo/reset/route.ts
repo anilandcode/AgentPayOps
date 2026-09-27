@@ -1,0 +1,3 @@
+import {hasPresenterSession} from "@/lib/presenter-session";
+import {createServerSupabaseClient} from "@/lib/supabase-server";
+export async function POST(request:Request){if(!await hasPresenterSession())return Response.json({error:"Presenter session required."},{status:403});const origin=request.headers.get("origin");if(origin&&origin!==new URL(request.url).origin)return Response.json({error:"Origin mismatch."},{status:403});const supabase=createServerSupabaseClient();if(!supabase)return Response.json({error:"Shared demo database is not configured."},{status:503});const {error}=await supabase.rpc("demo_v2_reset");if(error)return Response.json({error:error.message},{status:409});return Response.json({reset:true,source:"supabase"})}

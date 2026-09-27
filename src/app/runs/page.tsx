@@ -1,0 +1,3 @@
+import Link from "next/link";
+import { RunStudio } from "@/components/run-studio";
+export default function RunsPage(){return <><div className="page-heading"><div><div className="eyebrow">GUIDED LIVE DEMO</div><h1>Watch the agent decide</h1><p>Run a clean purchase, rules escalation, and Jev review. Compare the expected outcome with recorded decisions and actual provider availability.</p></div><Link className="button-secondary" href="/architecture">Understand the layers →</Link></div><div className="glass-panel guide-strip"><span>1 · Clean purchase</span><span>2 · Rules escalation</span><span>3 · Jev review</span><span>4 · Human decision</span><span>5 · Audit record</span></div><RunStudio /></>}

@@ -1,7 +1,6 @@
 import type { FinanceMemo } from "./finance-memo";
 import {
   auditEvents,
-  policies,
   transactions,
   type AuditEvent,
   type Decision,
@@ -110,6 +109,7 @@ export function transactionFromRun(result: AgentRunRecord, id?: string): Transac
 }
 
 export function auditEventFromRun(result: AgentRunRecord, id?: string): AuditEvent {
+  const action = result.payment.status === "approved" ? "Policy approved simulated payment" : result.payment.status === "escalated" ? "Sent simulated payment for human review" : "Blocked simulated payment";
   return {
     id: id ?? `LIVE-AUD-${crypto.randomUUID().slice(0, 8)}`,
     actorType: "agent",
@@ -117,10 +117,10 @@ export function auditEventFromRun(result: AgentRunRecord, id?: string): AuditEve
       result.scenario.category === "lead-enrichment"
         ? "Procurement Agent"
         : "Ops Invoice Agent",
-    action: result.memo.headline,
+    action,
     target: result.scenario.invoiceId,
     decision: result.payment.status,
-    reasoning: result.memo.summary,
+    reasoning: result.payment.evaluation.reason,
     createdAt: formatAuditTime(result.completedAt),
   };
 }
@@ -152,53 +152,32 @@ function mapAuditEvent(row: AuditEventRow): AuditEvent {
     target: row.target,
     decision: row.decision,
     reasoning: row.reasoning,
-    createdAt: formatAuditTime(row.created_at),
+    createdAt: row.created_at,
   };
+}
+
+async function allRows(table: "demo_v2_transactions" | "demo_v2_audit_events") {
+  const supabase = createServerSupabaseClient();
+  if (!supabase) return null;
+  const rows: Record<string, unknown>[] = [];
+  for (let start = 0; ; start += 500) {
+    const { data, error } = await supabase.from(table).select("*").order("created_at", { ascending: false }).range(start, start + 499);
+    if (error) throw new Error(`${table}: ${error.message}`);
+    rows.push(...(data ?? []));
+    if (!data || data.length < 500) break;
+  }
+  return rows;
 }
 
 export async function getOperationsSnapshot() {
   const supabase = createServerSupabaseClient();
-
-  if (!supabase) {
-    return {
-      source: "sample" as const,
-      transactions,
-      auditEvents,
-    };
-  }
-
-  const [transactionResult, auditResult] = await Promise.all([
-    supabase
-      .from("transactions")
-      .select("*")
-      .order("created_at", { ascending: false })
-      .limit(50),
-    supabase
-      .from("audit_events")
-      .select("*")
-      .order("created_at", { ascending: false })
-      .limit(50),
+  if (!supabase) return { source: "sample" as const, transactions, auditEvents };
+  const [transactionRows, auditRows] = await Promise.all([
+    allRows("demo_v2_transactions"), allRows("demo_v2_audit_events"),
   ]);
-
-  if (transactionResult.error || auditResult.error) {
-    return {
-      source: "sample" as const,
-      transactions,
-      auditEvents,
-    };
-  }
-
-  return {
-    source: "supabase" as const,
-    transactions:
-      transactionResult.data.length > 0
-        ? transactionResult.data.map((row) => mapTransaction(row as TransactionRow))
-        : transactions,
-    auditEvents:
-      auditResult.data.length > 0
-        ? auditResult.data.map((row) => mapAuditEvent(row as AuditEventRow))
-        : auditEvents,
-  };
+  return { source: "supabase" as const,
+    transactions: (transactionRows ?? []).map(row => mapTransaction(row as TransactionRow)),
+    auditEvents: (auditRows ?? []).map(row => mapAuditEvent(row as AuditEventRow)) };
 }
 
 export async function getTransactionsForPolicyEvaluation() {
@@ -206,80 +185,38 @@ export async function getTransactionsForPolicyEvaluation() {
   return snapshot.transactions;
 }
 
-export async function saveAgentRun(result: AgentRunRecord) {
+export async function beginAgentRun(id: string, scenarioId: string, invoiceId: string) {
   const supabase = createServerSupabaseClient();
+  if (!supabase) throw new Error("Shared demo database is not configured.");
+  const { error } = await supabase.from("demo_v2_agent_runs").insert({ id, scenario_id: scenarioId, invoice_id: invoiceId, status: "running" });
+  if (error) throw new Error(error.message);
+}
+export async function failAgentRun(id: string) {
+  const supabase = createServerSupabaseClient();
+  if (supabase) await supabase.from("demo_v2_agent_runs").update({status:"failed",completed_at:new Date().toISOString()}).eq("id",id).eq("status","running");
+}
+export async function saveAgentRun(result: AgentRunRecord, runId?: string) {
+  const supabase = createServerSupabaseClient();
+  if (!supabase || !runId) return {source:"unavailable" as const,error:"Shared demo database or server run ID is unavailable."};
   const transaction = transactionFromRun(result);
   const auditEvent = auditEventFromRun(result);
-
-  if (!supabase) {
-    return {
-      source: "memory" as const,
-      transaction,
-      auditEvent,
-    };
-  }
-
-  const runId = crypto.randomUUID();
-
-  const transactionRow: TransactionRow = {
-    id: transaction.id,
-    invoice_id: transaction.invoiceId,
-    agent_name: transaction.agentName,
-    vendor_name: transaction.vendorName,
-    amount: transaction.amount,
-    category: transaction.category,
-    status: transaction.status,
-    policy_decision: transaction.policyDecision,
-    reason: transaction.reason,
-    x402_reference: transaction.x402Reference,
-    created_at: result.completedAt,
+  const transactionRow = {
+    id:transaction.id,invoice_id:transaction.invoiceId,agent_name:transaction.agentName,
+    vendor_name:transaction.vendorName,amount:transaction.amount,category:transaction.category,
+    status:transaction.status,policy_decision:transaction.policyDecision,reason:transaction.reason,
+    x402_reference:transaction.x402Reference,created_at:result.completedAt,
   };
-
-  const auditEventRow: AuditEventRow = {
-    id: auditEvent.id,
-    actor_type: auditEvent.actorType,
-    actor_name: auditEvent.actorName,
-    action: auditEvent.action,
-    target: auditEvent.target,
-    decision: auditEvent.decision,
-    reasoning: auditEvent.reasoning,
-    created_at: result.completedAt,
+  const auditRow = {
+    id:auditEvent.id,actor_type:auditEvent.actorType,actor_name:auditEvent.actorName,
+    action:auditEvent.action,target:auditEvent.target,decision:auditEvent.decision,
+    reasoning:auditEvent.reasoning,created_at:result.completedAt,
   };
-
-  const { error: runError } = await supabase.from("agent_runs").insert({
-    id: runId,
-    scenario_id: result.scenario.id,
-    invoice_id: result.scenario.invoiceId,
-    decision: result.payment.status,
-    payload: result,
-    created_at: result.completedAt,
+  const {error} = await supabase.rpc("demo_v2_complete_run",{
+    p_id:runId,p_decision:result.payment.status,p_payload:result,
+    p_transaction:transactionRow,p_audit:auditRow,
   });
-
-  const { error: transactionError } = await supabase
-    .from("transactions")
-    .insert(transactionRow);
-  const { error: auditError } = await supabase
-    .from("audit_events")
-    .insert(auditEventRow);
-
-  if (runError || transactionError || auditError) {
-    return {
-      source: "memory" as const,
-      transaction,
-      auditEvent,
-      error:
-        runError?.message ||
-        transactionError?.message ||
-        auditError?.message ||
-        "Failed to save agent run.",
-    };
-  }
-
-  return {
-    source: "supabase" as const,
-    transaction,
-    auditEvent,
-  };
+  if(error) return {source:"supabase" as const,error:error.message};
+  return {source:"supabase" as const,transaction,auditEvent,runId};
 }
 
 /* ------------------------------------------------------------------ */
@@ -288,100 +225,24 @@ export async function saveAgentRun(result: AgentRunRecord) {
 
 export type HumanDecision = "released" | "cancelled";
 
-const memoryLedger = new Map<
-  string,
-  { status: Decision; reason: string; decidedBy: string; at: string }
->();
-
 export async function recordHumanDecision(input: {
-  transactionId: string;
-  decision: HumanDecision;
-  actorName: string;
-  note?: string;
+  transactionId:string;decision:HumanDecision;actorName:string;note?:string;
 }) {
   const supabase = createServerSupabaseClient();
-  const at = new Date().toISOString();
-  const paymentIssued = input.decision === "released";
-  const reason = paymentIssued
-    ? `Human finance approval granted${input.note ? `: ${input.note}` : "."}`
-    : `Human finance approval denied${input.note ? `: ${input.note}` : "."}`;
-
-  const auditRow: AuditEventRow = {
-    id: `HUMAN-${crypto.randomUUID().slice(0, 8)}`,
-    actor_type: "human",
-    actor_name: input.actorName,
-    action: paymentIssued
-      ? "Released escalated payment"
-      : "Cancelled escalated payment",
-    target: input.transactionId,
-    decision: paymentIssued ? "released" : "blocked",
-    reasoning: reason,
-    created_at: at,
-  };
-
-  if (!supabase) {
-    const prior = memoryLedger.get(input.transactionId);
-    memoryLedger.set(input.transactionId, {
-      status: paymentIssued ? "released" : "blocked",
-      reason,
-      decidedBy: input.actorName,
-      at,
-    });
-    return {
-      source: "memory" as const,
-      statusChanged: Boolean(prior) || paymentIssued,
-      auditEvent: mapAuditEvent(auditRow),
-    };
-  }
-
-  const { data: updated, error: updateError } = await supabase
-    .from("transactions")
-    .update({
-      status: paymentIssued ? "released" : "blocked",
-      reason,
-      decided_by: input.actorName,
-      released_at: paymentIssued ? at : null,
-      x402_reference: paymentIssued
-        ? `x402-human-${crypto.randomUUID().slice(0, 8)}`
-        : "payment-cancelled-by-human",
-    })
-    .eq("id", input.transactionId)
-    .eq("status", "escalated")
-    .select("id");
-
-  if (updateError || !updated || updated.length === 0) {
-    return {
-      source: "supabase" as const,
-      error:
-        updateError?.message ||
-        "Transaction is no longer awaiting human approval.",
-    };
-  }
-
-  const { error: auditError } = await supabase
-    .from("audit_events")
-    .insert(auditRow);
-
-  return {
-    source: "supabase" as const,
-    auditEvent: mapAuditEvent(auditRow),
-    auditSaved: !auditError,
-  };
+  if (!supabase) return {source:"unavailable" as const,error:"Shared demo database is not configured."};
+  const {error} = await supabase.rpc("demo_v2_decide_payment",{
+    p_id:input.transactionId,p_decision:input.decision,p_actor:input.actorName,p_note:input.note??"",
+  });
+  if(error) return {source:"supabase" as const,error:error.message};
+  return {source:"supabase" as const,statusChanged:true};
 }
-
 export async function listPendingApprovals() {
   const snapshot = await getOperationsSnapshot();
-  const pending = snapshot.transactions.filter(
-    (transaction) => transaction.status === "escalated",
-  );
-  return snapshot.source === "sample"
-    ? pending.filter((t) => !memoryLedger.has(t.id))
-    : pending;
+  return snapshot.transactions.filter(t=>t.status==="escalated");
 }
 
 /* ------------------------------------------------------------------ */
-/* Editable payment controls — Supabase `policies` table, static seed  */
-/* as fallback so the demo works identically without a database.       */
+/* Editable payment controls — isolated shared demo policy table.       */
 /* ------------------------------------------------------------------ */
 
 type PolicyRow = {
@@ -393,6 +254,7 @@ type PolicyRow = {
   allowed_vendors: string[];
   blocked_vendors: string[];
   enabled: boolean;
+  version: number;
 };
 
 function mapPolicyRow(row: PolicyRow): Policy {
@@ -405,6 +267,7 @@ function mapPolicyRow(row: PolicyRow): Policy {
     allowedVendors: Array.isArray(row.allowed_vendors) ? row.allowed_vendors : [],
     blockedVendors: Array.isArray(row.blocked_vendors) ? row.blocked_vendors : [],
     enabled: Boolean(row.enabled),
+    version: row.version,
   };
 }
 
@@ -412,14 +275,13 @@ export async function getActivePolicies(): Promise<Policy[]> {
   const supabase = createServerSupabaseClient();
 
   if (!supabase) {
-    return policies;
+    throw new Error("Shared demo database is not configured.");
   }
 
-  const { data, error } = await supabase.from("policies").select("*");
+  const { data, error } = await supabase.from("demo_v2_policies").select("*");
 
-  if (error || !data || data.length === 0) {
-    return policies;
-  }
+  if (error) throw new Error(error.message);
+  if (!data || data.length === 0) throw new Error("Demo policy dataset is empty.");
 
   return (data as PolicyRow[]).map(mapPolicyRow);
 }
@@ -427,6 +289,7 @@ export async function getActivePolicies(): Promise<Policy[]> {
 export async function updatePolicy(
   id: string,
   patchBody: Partial<Omit<Policy, "id">>,
+  expectedVersion: number,
 ) {
   const supabase = createServerSupabaseClient();
 
@@ -447,13 +310,14 @@ export async function updatePolicy(
   }
 
   if (!supabase) {
-    return { source: "memory" as const, error: "No database configured." };
+    return { source: "unavailable" as const, error: "Shared demo database is not configured." };
   }
 
   const { data, error } = await supabase
-    .from("policies")
-    .update(row)
+    .from("demo_v2_policies")
+    .update({...row,version:expectedVersion+1,updated_at:new Date().toISOString()})
     .eq("id", id)
+    .eq("version",expectedVersion)
     .select("*");
 
   if (error) {
@@ -461,7 +325,7 @@ export async function updatePolicy(
   }
 
   if (!data || data.length === 0) {
-    return { source: "supabase" as const, error: `Policy ${id} not found.` };
+    return { source: "supabase" as const, error: `Policy ${id} was changed by another visitor. Refresh and retry.` };
   }
 
   return { source: "supabase" as const, policy: mapPolicyRow(data[0] as PolicyRow) };

@@ -50,7 +50,7 @@ export function evaluatePayment(request: PaymentRequest): PolicyEvaluation {
     (transaction) =>
       transaction.vendorName === request.vendorName &&
       transaction.category === request.category &&
-      transaction.status === "approved",
+      (transaction.status === "approved" || transaction.status === "released"),
   );
 
   const checks = [
