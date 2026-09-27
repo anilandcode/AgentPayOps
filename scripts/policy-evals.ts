@@ -42,6 +42,8 @@ const cases: Case[] = [
   { id: "ap-approve-enrichment", req: { vendorName: "Clearbit Sample", amount: 300, category: "lead-enrichment", existingTransactions: [] }, expected: "approved" },
   { id: "ap-escalate-enrichment-over", req: { vendorName: "PeopleGraph Demo", amount: 500, category: "lead-enrichment", existingTransactions: [] }, expected: "escalated" },
   { id: "ap-block-duplicate", req: { vendorName: "Veritas Risk Graph", amount: 100, category: "vendor-risk-data", existingTransactions: [dup] }, expected: "blocked" },
+  { id: "ap-block-same-invoice", req: { vendorName: "Veritas Risk Graph", amount: 100, category: "vendor-risk-data", invoiceId: "INV-DUP", existingTransactions: [dup] }, expected: "blocked" },
+  { id: "ap-approve-new-invoice", req: { vendorName: "Veritas Risk Graph", amount: 100, category: "vendor-risk-data", invoiceId: "INV-NEXT", existingTransactions: [dup] }, expected: "approved" },
   { id: "ap-block-released-after-fifty", req: { vendorName: "Veritas Risk Graph", amount: 100, category: "vendor-risk-data", existingTransactions: [...Array.from({ length: 50 }, (_, index) => ({ ...dup, id: `TX-OTHER-${index}`, vendorName: "Other Vendor", status: "blocked" as const })), { ...dup, status: "released" }] }, expected: "blocked" },
 ];
 

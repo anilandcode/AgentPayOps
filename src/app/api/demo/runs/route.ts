@@ -22,8 +22,16 @@ async function runRequest(request:Request,emit?:(step:Progress)=>void){if(!withi
  if(!scenario&&body.scenarioId)return Response.json({error:"Unknown scenario."},{status:400});
  if(!scenario&&body.custom){const c=body.custom;if(typeof c.vendorName!=="string"||c.vendorName.length<2||c.vendorName.length>100||typeof c.category!=="string"||c.category.length<2||c.category.length>60||typeof c.amount!=="number"||!Number.isFinite(c.amount)||c.amount<=0||c.amount>50000||typeof c.invoiceId!=="string"||c.invoiceId.length<2||c.invoiceId.length>80)return Response.json({error:"Check invoice ID, vendor, category, and an amount from 0.01 to 50,000."},{status:400});scenario={id:"custom",name:"Edited invoice",description:"Visitor edited invoice fields",invoiceId:c.invoiceId,vendorName:c.vendorName,amount:c.amount,category:c.category,expectedDecision:"pending",context:typeof c.context==="string"?c.context.slice(0,2000):undefined};}
  if(!scenario)return Response.json({error:"Choose a scenario or provide edited invoice fields."},{status:400});
- const runId=crypto.randomUUID(),start=Date.now();try{await beginAgentRun(runId,scenario.id,scenario.invoiceId);
+ const runId=crypto.randomUUID(),start=Date.now();try{
  const [history,policies]=await Promise.all([getTransactionsForPolicyEvaluation(),getActivePolicies()]);
+ if(scenario.id==="clean")scenario={...scenario,invoiceId:`DEMO-CLEAN-${crypto.randomUUID().slice(0,8).toUpperCase()}`};
+ if(scenario.id==="duplicate"){
+  const duplicateScenario=scenario;
+  const prior=history.find(transaction=>transaction.vendorName===duplicateScenario.vendorName&&transaction.category===duplicateScenario.category&&transaction.amount===duplicateScenario.amount&&transaction.invoiceId.startsWith("DEMO-CLEAN-")&&(transaction.status==="approved"||transaction.status==="released"));
+  if(!prior)return Response.json({error:"Run a clean purchase before testing the duplicate scenario."},{status:409});
+  scenario={...scenario,invoiceId:prior.invoiceId};
+ }
+ await beginAgentRun(runId,scenario.id,scenario.invoiceId);
  const evaluation=evaluatePayment({vendorName:scenario.vendorName,amount:scenario.amount,category:scenario.category,invoiceId:scenario.invoiceId,existingTransactions:history,policySet:policies});
  emit?.({name:"Policy floor",state:"completed"});
  const policyDecision=evaluation.decision;let jev:Awaited<ReturnType<typeof assessPaymentRisk>>=null;let aiState="skipped by policy";

@@ -18,7 +18,7 @@ Desktop: 240px sidebar, compact header, 1440px maximum content, 24px gutters. Ta
 | How It Works | Seven-layer map, expandable technical details, connected demo | Run walkthrough | Each stage reflects an actual API result |
 
 ## Guided journey
-Start at Overview. Run a clean purchase, then a rules escalation, then a Jev fraud review. Review an escalated item and inspect its audit event. Visitors may skip to any page. Run progress and unfinished invoice text survive route changes within the browser session. Expected and actual decisions remain separate, especially when a provider is unavailable.
+Start at Overview. Run a clean purchase, then a rules escalation, then a Jev fraud review. Review an escalated item and inspect its audit event. Each clean run uses a fresh demo invoice ID so visitors can repeat the journey; the duplicate scenario replays the latest approved clean invoice. Visitors may skip to any page. Run progress and unfinished invoice text survive route changes within the browser session. Expected and actual decisions remain separate, especially when a provider is unavailable.
 
 ## Shared demo behavior
 Visitors share sample data and policies, while raw uploaded files are not retained. Show a notice asking for sample documents. Presenter reset is authenticated and targets only this demo dataset. A reset must wait for or reject active runs. Concurrent policy edits and human decisions yield a conflict and reload current data. No action moves real funds; all payment references are marked simulated.

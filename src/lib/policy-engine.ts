@@ -50,6 +50,9 @@ export function evaluatePayment(request: PaymentRequest): PolicyEvaluation {
     (transaction) =>
       transaction.vendorName === request.vendorName &&
       transaction.category === request.category &&
+      transaction.amount === request.amount &&
+      (!request.invoiceId ||
+        transaction.invoiceId.toLowerCase() === request.invoiceId.toLowerCase()) &&
       (transaction.status === "approved" || transaction.status === "released"),
   );
 
@@ -92,7 +95,7 @@ export function evaluatePayment(request: PaymentRequest): PolicyEvaluation {
     return {
       decision: "blocked",
       policyId: policy.id,
-      reason: "A matching paid data purchase already exists in the transaction log.",
+      reason: "This invoice already has a matching paid purchase in the transaction log.",
       checks,
     };
   }
