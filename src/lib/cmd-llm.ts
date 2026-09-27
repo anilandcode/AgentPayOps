@@ -200,9 +200,10 @@ async function askHttp(
   apiKey: string,
   model: string,
   content: string | unknown[],
+  timeoutMs = HTTP_TIMEOUT_MS,
 ): Promise<string> {
   const controller = new AbortController();
-  const timer = setTimeout(() => controller.abort(), HTTP_TIMEOUT_MS);
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
   try {
     const response = await fetch(PROVIDER_CHAT_URL, {
       method: "POST",
@@ -275,13 +276,14 @@ export async function askCommandCodeVision(
 export async function askCommandCode(
   prompt: string,
   logTag = "cmd-llm",
+  options?: { timeoutMs?: number; maxModels?: number },
 ): Promise<CmdAnswer | null> {
   const mode = llmMode();
   if (mode === "off") {
     return null;
   }
 
-  const models = cmdModels();
+  const models = cmdModels().slice(0, options?.maxModels ?? Number.POSITIVE_INFINITY);
   const binary = mode === "http" ? null : await findCliBinary();
 
   for (const model of models) {
@@ -300,7 +302,7 @@ export async function askCommandCode(
         break;
       }
       try {
-        const text = await askHttp(apiKey, model, prompt);
+        const text = await askHttp(apiKey, model, prompt, options?.timeoutMs);
         return { text, model, via: "cmd-http" };
       } catch (error) {
         console.warn(`[${logTag}] http ${model} failed:`, (error as Error).message);

@@ -1,4 +1,5 @@
 import { getActivePolicies, updatePolicy } from "@/lib/persistence";
+import { withinDemoLimit } from "@/lib/demo-rate-limit";
 
 export const maxDuration = 30;
 
@@ -11,6 +12,7 @@ export async function GET() {
 }
 
 export async function PATCH(request: Request) {
+  if (!withinDemoLimit(request, "policy-edit", 20)) return Response.json({ error: "Edit limit reached. Try again in a minute." }, { status: 429 });
   const payload = (await request.json()) as {
     id?: string;
     patch?: Record<string, unknown>;

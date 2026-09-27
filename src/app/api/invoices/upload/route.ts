@@ -3,6 +3,7 @@ import {
 } from "@/lib/invoice-analysis";
 import { askCommandCodeVision } from "@/lib/cmd-llm";
 import { assessInvoiceRisk } from "@/lib/jev-risk";
+import { withinDemoLimit } from "@/lib/demo-rate-limit";
 
 export const maxDuration = 90;
 
@@ -43,6 +44,7 @@ Return plain text only. Include these fields when visible: invoice id, vendor, a
 }
 
 export async function POST(request: Request) {
+  if (!withinDemoLimit(request, "invoice-upload", 10)) return Response.json({ error: "Upload limit reached. Try again in a minute." }, { status: 429 });
   const formData = await request.formData();
   const upload = formData.get("invoice");
 

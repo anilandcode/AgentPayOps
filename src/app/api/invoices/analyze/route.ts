@@ -1,9 +1,11 @@
 import { analyzeInvoiceText } from "@/lib/invoice-analysis";
 import { assessInvoiceRisk } from "@/lib/jev-risk";
+import { withinDemoLimit } from "@/lib/demo-rate-limit";
 
 export const maxDuration = 30;
 
 export async function POST(request: Request) {
+  if (!withinDemoLimit(request, "invoice-analyze", 20)) return Response.json({ error: "Analysis limit reached. Try again in a minute." }, { status: 429 });
   const payload = (await request.json()) as {
     sampleId?: string;
     invoiceText?: string;

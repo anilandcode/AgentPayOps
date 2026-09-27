@@ -1,8 +1,10 @@
 import { recordHumanDecision, type HumanDecision } from "@/lib/persistence";
+import { withinDemoLimit } from "@/lib/demo-rate-limit";
 
 export const maxDuration = 30;
 
 export async function POST(request: Request) {
+  if (!withinDemoLimit(request, "human-decision", 20)) return Response.json({ error: "Decision limit reached. Try again in a minute." }, { status: 429 });
   const payload = (await request.json()) as {
     transactionId?: string;
     decision?: HumanDecision;
