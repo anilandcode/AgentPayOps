@@ -37,7 +37,7 @@
 .center-intro p { color:#676b63; font-size:15px; line-height:1.55; max-width:460px; margin:0 auto; }
 .workflow-tabs { display:flex; justify-content:center; gap:4px; padding:5px; background:#f2f3f0; border-radius:999px; width:max-content; max-width:100%; margin:33px auto 53px; }
 .workflow-tabs button { padding:10px 22px; border:0; border-radius:999px; font-size:13px; color:#575c53; background:transparent; white-space:nowrap; }
-.workflow-tabs button[aria-selected="true"] { color:#fff; background:#1b1e19; box-shadow:0 3px 8px #1114; }
+.workflow-tabs button[aria-pressed="true"] { color:#fff; background:#1b1e19; box-shadow:0 3px 8px #1114; }
 .product-stage { background:#171a17; color:#fff; border-radius:15px; min-height:490px; box-shadow:0 24px 60px #15200622; overflow:hidden; position:relative; }
 .product-stage:before { content:""; position:absolute; inset:0; background:radial-gradient(ellipse at 50% 3%,#ffffff3b,transparent 55%),repeating-linear-gradient(45deg,transparent 0 16px,#ffffff06 17px 18px); pointer-events:none; }
 .stage-chrome { position:relative; padding:18px 30px; display:flex; align-items:center; justify-content:space-between; font-size:11px; border-bottom:1px solid #ffffff25; color:#d8dfd6; }.stage-brand { display:flex; align-items:center; gap:8px; }.stage-dot { width:9px; height:9px; border-radius:50%; background:#c5de79; }.stage-mode { font-size:10px; letter-spacing:.1em; border:1px solid #ffffff45; border-radius:999px; padding:5px 9px; }

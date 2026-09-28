@@ -1,6 +1,6 @@
 # AgentPayOps — Olive editorial redesign plan
 
-Status: proposed design plan; implementation has not started.
+Status: implementation authorized by the user on 2026-09-28; see DESIGN.md and the draft preview.
 Date: 2026-09-28
 Code baseline: `06c3529`, `codex/agentpayops-glass-workspace`.
 Primary visual reference: [Nexora full-page image](references/nexora-olive/full-page.png).
@@ -11,7 +11,7 @@ Replace the previous navy/mint workspace aesthetic with the supplied olive/lime,
 
 Confirmed structure: a new public product homepage at `/`, with the live overview moved to `/dashboard`. Redesign all seven workspace screens to share the new visual language. Keep AgentPayOps branding and describe its actual finance-control demo.
 
-This document is a plan. Do not implement, replace the active `DESIGN.md`, merge the existing PR, or publish a new release until the user authorizes implementation. Keep the current implementation and its functional repairs as the starting point. The new design work should use a separate `codex/agentpayops-olive-redesign` branch when implementation begins.
+The user subsequently authorized this UI implementation. Work is on the separate `codex/agentpayops-olive-redesign` branch. Production release remains a separate decision. The baseline implementation and its functional repairs remain the starting point.
 
 ## 2. What the reference actually establishes
 
