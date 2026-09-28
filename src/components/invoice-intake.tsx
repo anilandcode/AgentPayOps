@@ -131,10 +131,10 @@ export function InvoiceIntake() {
   }
 
   return (
-    <section className="intake-workspace rounded-lg border border-slate-200 bg-white p-5 shadow-sm">
-      <div className="intake-header flex flex-wrap items-start justify-between gap-4">
+    <section className="rounded-lg border border-slate-200 bg-white p-5 shadow-sm">
+      <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
-          <p className="intake-kicker text-sm font-semibold uppercase tracking-wide text-slate-500">
+          <p className="text-sm font-semibold uppercase tracking-wide text-slate-500">
             Invoice Intake
           </p>
           <h2 className="mt-2 text-2xl font-semibold tracking-tight text-slate-950">
@@ -161,13 +161,12 @@ export function InvoiceIntake() {
         </button>
       </div>
 
-      <div className="intake-grid mt-6 grid gap-5 xl:grid-cols-[0.95fr_1.05fr]">
-        <div className="intake-input space-y-4">
-          <div className="intake-samples grid gap-3 sm:grid-cols-3">
+      <div className="mt-6 grid gap-5 xl:grid-cols-[0.95fr_1.05fr]">
+        <div className="space-y-4">
+          <div className="grid gap-3 sm:grid-cols-3">
             {invoiceSamples.map((sample) => (
               <button
-                aria-pressed={selectedSampleId === sample.id}
-                className={`intake-sample rounded-lg border p-3 text-left text-sm font-semibold transition ${
+                className={`rounded-lg border p-3 text-left text-sm font-semibold transition ${
                   selectedSampleId === sample.id
                     ? "border-slate-950 bg-slate-950 text-white"
                     : "border-slate-200 bg-slate-50 text-slate-700 hover:border-slate-300 hover:bg-white"
@@ -181,7 +180,7 @@ export function InvoiceIntake() {
             ))}
           </div>
 
-          <div className="intake-upload rounded-lg border border-dashed border-slate-300 bg-white p-4">
+          <div className="rounded-lg border border-dashed border-slate-300 bg-white p-4">
             <label className="flex cursor-pointer flex-wrap items-center justify-between gap-3">
               <span className="inline-flex items-center gap-2 text-sm font-semibold text-slate-800">
                 <FileUp className="size-4" />
@@ -215,14 +214,14 @@ export function InvoiceIntake() {
               Invoice text
             </span>
             <textarea
-              className="intake-text min-h-72 w-full resize-y rounded-lg border border-slate-200 bg-slate-50 p-4 font-mono text-sm leading-6 text-slate-700 outline-none transition focus:border-slate-400 focus:bg-white"
+              className="min-h-72 w-full resize-y rounded-lg border border-slate-200 bg-slate-50 p-4 font-mono text-sm leading-6 text-slate-700 outline-none transition focus:border-slate-400 focus:bg-white"
               onChange={(event) => { setInvoiceText(event.target.value); sessionStorage.setItem("agentpayops:invoice-text",event.target.value); setSelectedSampleId("edited"); }}
               value={invoiceText}
             />
           </label>
         </div>
 
-        <div className="intake-output rounded-lg border border-slate-200 bg-slate-50 p-4">
+        <div className="rounded-lg border border-slate-200 bg-slate-50 p-4">
           {analysis ? (
             <div>
               <div className="flex flex-wrap items-start justify-between gap-3">
@@ -323,7 +322,7 @@ export function InvoiceIntake() {
               ) : null}
             </div>
           ) : (
-            <div className="intake-empty flex min-h-72 flex-col items-center justify-center rounded-lg border border-dashed border-slate-300 bg-white p-6 text-center">
+            <div className="flex min-h-72 flex-col items-center justify-center rounded-lg border border-dashed border-slate-300 bg-white p-6 text-center">
               <SearchCheck className="size-8 text-slate-400" />
               <h3 className="mt-4 font-semibold text-slate-950">
                 No analysis yet

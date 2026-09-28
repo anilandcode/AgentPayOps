@@ -1,31 +1,30 @@
-# AgentPayOps olive editorial UX specification
+# AgentPayOps glass workspace UX specification
 
-## Purpose and route map
-The public `/` page introduces the real finance-control demo. `/dashboard` is the live overview. The seven workspace screens are `/dashboard`, `/invoices`, `/runs`, `/approvals`, `/policies`, `/audit`, and `/architecture`; `/presenter` is a supporting utility. Payments are simulated. Keep the root `/#approval-queue` legacy anchor pointing to `/approvals`.
+## Purpose and audience
+A live shared demo for clients and recruiters. A first-time visitor should understand the problem in 30 seconds, complete the guided flow in two minutes, then explore each operating function. The seven public routes are Overview `/`, Invoices `/invoices`, Agent Runs `/runs`, Human Review `/approvals`, Payment Controls `/policies`, Audit `/audit`, and How It Works `/architecture`.
 
-## Homepage
-Compact brand, capsule anchor navigation, and workspace action sit over an olive-to-lime hero with quiet geometric lines. Two-line promise, two working actions, and three ledger-derived summaries lead into a centered workflow showcase. The three tabs show Invoice Intake, Policy Review, and Human Approval with a labelled sample stage and a real route link. Continue with an editorial statement and capability strip, dark olive four-stage process, three control principles, actual recorded case or explicit empty/error state, three real resource links, and near-black final CTA/footer. No customer testimonial, stock commerce imagery, or invented growth figures. On mobile the navigation becomes a labelled menu; summaries, stage, process, proof, and footer stack without page overflow.
+## Shell and navigation
+Desktop: 240px sidebar, compact header, 1440px maximum content, 24px gutters. Tablet: icon rail with accessible tooltips. Mobile: labelled menu drawer and 16px gutters. Persist `Shared demo · Simulated payments` in the shell. Keyboard focus must be clear. Deep links, browser back/forward, and the former `/#approval-queue` destination must navigate correctly.
 
-## Shared shell
-Desktop: 224px opaque white sidebar with olive active marker and compact white header; warm canvas and solid data surfaces. At 769–1024px use a 70px icon rail with accessible link titles; at 768px and below use a labelled drawer with scrim, Escape closure, focus trap, and focus return. Header always states `Shared demo · Simulated payments`. Brand goes to `/`; Overview goes to `/dashboard`. Forms, evidence, and tables never sit on translucent backgrounds.
+## Page contracts
+| Route | Primary content | Primary action | Empty / error behavior |
+|---|---|---|---|
+| Overview | Four live totals, activity chart, recent decisions, pending preview, two layered shortcuts | Start guided demo | State source and refresh error; empty chart uses explanatory copy |
+| Invoices | Sample/text/image intake left, editable extracted fields and evidence right | Analyze then run review | Unsupported PDF, oversize, invalid file, extraction unavailable are explicit |
+| Agent Runs | Guided flow, individual scenarios, actual step timeline, memo and source | Run selected scenario | Show skipped Jev and rules-only fallback honestly |
+| Human Review | Queue, filters, selected transaction, evidence, note | Confirm approve or reject demo payment | Conflict on already-decided item refreshes queue |
+| Payment Controls | Policy list, form, dirty-state controls | Save valid changes | Database unavailable blocks edits rather than implying success |
+| Audit | Transaction and event tabs, filter, pagination, details, export | Export matching ledger | Database errors are visible; exports are complete |
+| How It Works | Seven-layer map, expandable technical details, connected demo | Run walkthrough | Each stage reflects an actual API result |
 
-## Screen contracts
-| Route | Layout and primary task | States and constraints |
-|---|---|---|
-| `/dashboard` | Four live metrics, broad activity chart, next review action, recent decisions, and route shortcuts | Source and refresh error visible; chart and decisions explain actual empty state only after loading |
-| `/invoices` | Olive action header; sample/file/text input left; editable extracted fields and evidence right | Sample selection, upload formats and 6 MB maximum, unsupported PDF, extraction error, loading, and output empty state explicit. Input persists in session. On mobile input precedes output and action. |
-| `/runs` | Guided next action, one scenario selector and primary run action, live step timeline, recorded outcome, compact history | Expected and actual separate; clean runs repeat, duplicate blocks latest matching paid invoice; provider skipped/unavailable/failed states truthful. |
-| `/approvals` | Filter row, queue left, selected evidence and decision right | Confirmation before approve/reject; conflict reloads; no selection, empty, loading, sample-only, and success clearly labelled. |
-| `/policies` | Focused list/editor, thresholds and vendors, enabled state, save/cancel and dirty indicator | Validation, version conflict, sample-only, and save error visible. |
-| `/audit` | Large table, tabs, restrained filters, pagination/export, detail drawer | Money, timestamps, actors, source, and provider evidence readable. Loading and API error cannot masquerade as empty. Dense table scrolls within panel. |
-| `/architecture` | Olive introduction, seven expandable layers, actual run status and technical details | Active stage reflects run controller; no fabricated completion. |
-| `/presenter` | Solid credential and reset utility | 30-minute session messaging; reset guards and active run conflict retained. |
+## Guided journey
+Start at Overview. Run a clean purchase, then a rules escalation, then a Jev fraud review. Review an escalated item and inspect its audit event. Each clean run uses a fresh demo invoice ID so visitors can repeat the journey; the duplicate scenario replays the latest approved clean invoice. Visitors may skip to any page. Run progress and unfinished invoice text survive route changes within the browser session. Expected and actual decisions remain separate, especially when a provider is unavailable.
 
-## Data and interaction rules
-Homepage summaries and workspace totals come from the shared ledger, identified as live or sample. Preserve provider distinctions and human decision conflicts. Uploaded files are processed in memory; recommend sample documents on the public demo. The guided journey runs a clean purchase, escalation, optional risk review, human decision, then audit; visitors can enter anywhere. Refresh while visible, preserve invoice draft and walkthrough position in session, and distinguish connection errors from no records.
+## Shared demo behavior
+Visitors share sample data and policies, while raw uploaded files are not retained. Show a notice asking for sample documents. Presenter reset is authenticated and targets only this demo dataset. A reset must wait for or reject active runs. Concurrent policy edits and human decisions yield a conflict and reload current data. No action moves real funds; all payment references are marked simulated.
 
-## Responsive and visual checkpoint
-Compare the homepage hero/showcase and Invoice Intake at 1440px and 390px before propagating treatments. Inspect all routes at 1440, 1024, 768, and 390px. Review section proportions, heading wraps, glow contrast, form order, table containment, and no page-level horizontal overflow. The desktop preview checkpoint was inspected; mobile requires an actual viewport rendering before acceptance. Keyboard focus, tab order, focus restoration, 44px touch controls, semantic labels, WCAG AA text contrast, and reduced motion are required.
+## Responsive and state behavior
+Use 1440, 1024, 768, and 390px review widths. No page-level horizontal overflow. Dense tables may scroll inside panels. All controls have loading, success, error, disabled, and focus states. Show retry actions for recoverable failures and do not replace failed live data with unlabeled samples. Respect reduced motion, 44px touch targets, readable text contrast, and semantic labels.
 
-## Verification
-Run lint, build, deterministic policy evaluations, and `npx @google/design.md lint DESIGN.md`. Check links, workflow tabs, back/forward, legacy anchor, two clean runs and duplicate result, edited invoice evaluation, approval conflict, policy save, audit export/details, valid and invalid uploads, presenter reset, and provider failures on the branch preview. Release is separate from this draft preview. Current known Command Code failure remains a truthful provider state and is outside this UI redesign.
+## API dependencies and acceptance
+Overview, queue, audit, and charts read one authoritative dataset. Run details and pagination are server-backed. Policies and decisions are validated on the server. Providers report completed, skipped, unavailable, or failed. A preview uses separate demo tables from the current public ledger. Verify two concurrent browsers, policy edit conflict, double approval conflict, complete CSV/JSON export, supported file uploads, provider timeout, database failure, and presenter-only reset. Run lint, build, deterministic policy evals, Google DESIGN.md validation, visual/responsive checks, and graphify refresh.
