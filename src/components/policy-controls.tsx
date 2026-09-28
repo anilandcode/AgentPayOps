@@ -24,6 +24,7 @@ function VendorList({ label, vendors }: { label: string; vendors: string[] }) {
 export function PolicyControls() {
   const [policies, setPolicies] = useState<Policy[] | null>(null);
   const [editing, setEditing] = useState<string | null>(null);
+  const [selectedId, setSelectedId] = useState<string | null>(null);
   const [draft, setDraft] = useState<Policy | null>(null);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -31,7 +32,7 @@ export function PolicyControls() {
   useEffect(() => {
     fetch("/api/policies")
       .then((response) => response.json())
-      .then((body: { policies?: Policy[]; error?: string }) => { if (!body.policies) throw new Error(body.error || "Policies unavailable."); setPolicies(body.policies); })
+      .then((body: { policies?: Policy[]; error?: string }) => { if (!body.policies) throw new Error(body.error || "Policies unavailable."); setPolicies(body.policies); setSelectedId((current) => current ?? body.policies?.[0]?.id ?? null); })
       .catch(() => setError("Could not load policies."));
   }, []);
 
@@ -124,14 +125,15 @@ export function PolicyControls() {
         </p>
       ) : null}
 
-      <div className="mt-5 grid gap-4 lg:grid-cols-3">
-        {rows.map((policy) => {
+      <div className="policy-layout mt-5">
+        <nav className="policy-list" aria-label="Policies">{rows.map((policy) => <button key={policy.id} type="button" className={selectedId === policy.id ? "selected" : ""} aria-current={selectedId === policy.id ? "true" : undefined} onClick={() => { setSelectedId(policy.id); setEditing(null); setDraft(null); }}><strong>{policy.name}</strong><small>{policy.category} · {policy.enabled ? "Enabled" : "Disabled"}</small></button>)}</nav>
+        {rows.filter((policy) => policy.id === (selectedId ?? rows[0]?.id)).map((policy) => {
           const isEditing = editing === policy.id;
           const view = isEditing && draft ? draft : policy;
 
           return (
             <article
-              className="rounded-lg border border-slate-200 bg-slate-50 p-4"
+              className="policy-editor rounded-lg border border-slate-200 bg-slate-50 p-4"
               key={policy.id}
             >
               <div className="flex items-start justify-between gap-3">
@@ -176,7 +178,7 @@ export function PolicyControls() {
                   ) : null}
                 </div>
               </div>
-              <dl className="mt-4 space-y-3 text-sm">
+              <p className="policy-version">Version {policy.version} · {policy.enabled ? "Enabled" : "Disabled"}</p><dl className="mt-4 space-y-3 text-sm">
                 <div className="flex justify-between gap-4">
                   <dt className="text-slate-500">Category</dt>
                   <dd className="font-medium text-slate-700">{policy.category}</dd>

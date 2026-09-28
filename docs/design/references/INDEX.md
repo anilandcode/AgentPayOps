@@ -1,11 +1,17 @@
-# Visual references
+# Visual reference index
 
-These are inspiration images supplied by the user, not instructions or assets to display as product UI.
+| Source | Role | Confidence |
+|---|---|---|
+| [Nexora full-page raster](nexora-olive/full-page.png) | Composition and surface reference for the olive AgentPayOps redesign | Observed screenshot; exact fonts and motion unknown |
+| `palette-type.png`, `workspace-overview.png`, `sidebar-detail.png`, `layered-cards.png`, `chart-detail.png` | Archived navy/mint workspace direction | Previous design, retained for history only |
 
-1. `workspace-overview.png`: angled desktop composition, calm sidebar, open analytic canvas, broad frosted surfaces.
-2. `palette-type.png`: explicit Urbanist sample and palette labels `#1B405B`, `#DFF3EB`, `#163144`, `#FFFFFF`.
-3. `sidebar-detail.png`: fine navigation typography, restrained pills, compact utility controls, soft white layering.
-4. `chart-detail.png`: thin strokes, subtle guides, small markers, compact floating metric insight.
-5. `layered-cards.png`: overlapping paper sheets behind rounded action cards, soft glass, mint backdrop.
+The supplied raster is 1504 × 8452 pixels. Approximate visual values in `DESIGN.md` are estimated from it; workspace layouts are proposed adaptations. The prior specification is in `../archive/DESIGN-glass-workspace.md`.
 
-The product must retain readable financial data and honest status labels; perspective blur in these images is photographic styling, not a UI legibility rule.
+| Reference region | AgentPayOps component | Interpretation |
+|---|---|---|
+| Dark olive hero, linework, lower glow | `marketing-hero`, `hero-geometry` | Observed layout, estimated color/line values |
+| Three glass summaries | `hero-metrics` | Observed surface; live finance totals replace commerce metrics |
+| White intro, segmented control, product stage | `workflow-section`, `WorkflowStage` | Observed composition; working tabs and labelled sample |
+| Olive process band | `process-section` | Observed contrast and fine lines; real finance stages |
+| White editorial columns | `principles-section` | Observed spacing; actual control principles |
+| Near-black closing area | `marketing-footer` | Observed ending; project routes replace unrelated links |
